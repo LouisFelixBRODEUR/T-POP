@@ -5,6 +5,8 @@ import numpy as np
 from scipy.signal import find_peaks
 import os
 
+# TODO pour les min et les max: mettre la position sur l'axe des y et l'index des max-min sur l'axe des y: la pente de ce graph est lambda/a
+
 def main():
     #  Lecture du fichier CSV
     path = os.path.dirname(os.path.abspath(__file__))+"\\Images_Lab_Diffraction\\Fente_0_08.csv"
