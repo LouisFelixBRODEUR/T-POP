@@ -4,16 +4,20 @@ from scipy.signal import convolve
 import numpy as np
 from scipy.signal import find_peaks
 import os
+from scipy.optimize import curve_fit
 
-# TODO Fitter une ligne sur les graph dindex pour avoir la pente
 # TODO Formater les graph pour la presentation
+# TODO AJOUT INCERTITUDE
+# TODO AJOUT EQUATION DU FIT
+# TODO AJOUT DES CALCULS DE LA TAILLE DE LA FENTE????
 
 def main():
     #  Lecture du fichier CSV
     path = os.path.dirname(os.path.abspath(__file__))+"\\Images_Lab_Diffraction\\Fente_0_08.csv"
-    # df = pd.read_csv("C:/Users/HP/Documents/ULaval_S4/Travaux_Opt/Lab_Diffraciton/Images_Lab_Diffraction/Fente_0_08.csv")  # sep=';' si besoin
     df = pd.read_csv(path)
-    # print(os.path.dirname(os.path.abspath(__file__))+"Images_Lab_Diffraction/Fente_0_08.csv")
+
+    # mm_par_pix = 52 / 684 #REAL
+    mm_par_pix = 66 / 684 #FAKE
 
     Position = df['pix']
     Intensity = df['Val']
@@ -35,63 +39,84 @@ def main():
     Position = Position-convo_max_index
 
     # Transfo Pix->Position
-    Position_mm = Position * 52 / 684
+    Position_mm = Position * mm_par_pix
 
-    # Trouver les Min et Max
-    list_min, _ = find_peaks(1/Intensity_norm_Convo)
-    list_min_replace = ((list_min-convo_max_index)* 52 / 684)
-    list_max, _ = find_peaks(Intensity_norm_Convo)
-    list_max_replace = ((list_max-convo_max_index)* 52 / 684)
-    mins_val = [Intensity_norm[i] for i in list_min]
-    maxs_val = [Intensity_norm[i] for i in list_max]
+    # Transfo Position->Angle
+    distance_fente_ecran = 0.9
+    longueur_donde =  650*(10**(-9))
+    angles = np.arctan(Position_mm/1000/distance_fente_ecran)
+
+    # Trouver les Min
+    pos_min_pix, _ = find_peaks(1/Intensity_norm_Convo)
+    pos_min_mm = ((pos_min_pix-convo_max_index)* mm_par_pix)
+    mins_angle = np.arctan(pos_min_mm/1000/distance_fente_ecran)
+    mins_val = [Intensity_norm[i] for i in pos_min_pix]
+
+    # Creation de la list des index des Min
+    n=len(pos_min_mm) # Nombre de minimums
+    if n%2 == 1: # Le nombre de min doit être pair
+        raise ValueError("Minimum number must be even")
+    Index = np.linspace(-n/2, n/2, n+1)
+    Index = Index[Index != 0]  # Remove the zero
+
+    # Fit d'une droite sur le data
+    def Droite(Mn, pente, offset):
+        return Mn*pente + offset
+    bounds = ([0, -5], [10, 5])
+    initial_guess = [5, 0]
+    params, covariance = curve_fit(Droite, Index, mins_angle, p0=initial_guess, bounds=bounds)
+    print(params)
+
+    Fitted_line = Droite(Index, params[0], params[1])
+
+    a = longueur_donde/params[0]
+    print(f'Fente de {a*1000}mm')
+
 
     # Graphique du patron
-    plt.subplot(1, 3, 1)  # (rows, cols, index)
-    plt.plot(Position_mm, Intensity_norm, label="Intensité normalisée", color="red")
-    plt.plot(Position_mm, Intensity_norm_Convo, label="Convolution Intensité normalisée", color="blue")
-    # Display Min Max points
-    plt.scatter(list_min_replace, mins_val, color='green', marker='x', label='Minimums')
-    plt.scatter(list_max_replace, maxs_val, color='purple', marker='x', label='Maximums')
+    plt.subplot(1, 2, 1)  # (rows, cols, index)
+
+    # En Angle
+    plt.plot(angles, Intensity_norm, label="Intensité normalisée", color="red")
+    # plt.plot(angles, Intensity_norm_Convo, label="Convolution Intensité normalisée", color="blue")
+
+    # En Position
+    # plt.plot(Position_mm, Intensity_norm, label="Intensité normalisée", color="red")
+    # plt.plot(Position_mm, Intensity_norm_Convo, label="Convolution Intensité normalisée", color="blue")
+
+    # Display Min points
+    # plt.scatter(pos_min_mm, mins_val, color='green', marker='x', label='Minimums')
+
     # Mise en forme du graphique
-    plt.xlabel("Position (mm)")
+    # plt.xlabel("Position (mm)")
+    plt.xlabel("Angle (rad)")
     plt.ylabel("I/I₀")
-    plt.title("Intensité relative en fonction de la distance avec le centre du patron produit par\n un laser 650nm passant dans une fente de 0.08mm")
+    plt.title("Intensité relative en fonction de la position angulaire du patron produit par\n un laser 650nm passant dans une fente de 0.08mm")
     plt.legend()
     plt.grid(True)
 
-    # Graphique des Min
-    n=len(list_min_replace)
-    Index = np.linspace(-((n-1)//2), (n-1)//2, n)  # Create a linspace array
-    Index = Index[Index != 0]  # Remove the zero
-    plt.subplot(1, 3, 2)
-    plt.scatter(Index, list_min_replace, label="Min", color="blue")
+    # Graph des Min
+    plt.subplot(1, 2, 2)
+    # plt.scatter(Index, pos_min_mm, label="Min", color="blue") # En Position
+    plt.scatter(Index, mins_angle, label="Min", color="blue") # En Angle
+    plt.plot(Index, Fitted_line, label="Fit Linéaire", color="green")
     plt.xlabel("mₙ")
-    plt.ylabel("Position (mm)")
-    plt.title("Position des minimum du pattron en fonction de leur indice")
-    plt.legend()
-    plt.grid(True)
-
-    # Graphique des Max
-    n=len(list_max_replace)
-    Index = np.linspace(-n/2, n/2, n, endpoint=True)
-    Index = Index[(Index != 0.5) & (Index != -0.5)]
-    plt.subplot(1, 3, 3)
-    plt.scatter(Index, list_max_replace, label="Max", color="blue")
-    plt.xlabel("mₙ")
-    plt.ylabel("Position (mm)")
-    plt.title("Position des maximums du pattron en fonction de leur indice")
+    # plt.ylabel("Position (mm)")
+    plt.ylabel("Angle (rad)")
+    plt.title("Position angulaire des minimums du pattron en fonction de leur indice mₙ")
     plt.legend()
     plt.grid(True)
 
     # Affichage
-    plt.subplots_adjust(
-        top=0.9,      # Adjust the top spacing
-        bottom=0.08,  # Adjust the bottom spacing
-        left=0.07,    # Adjust the left spacing
-        right=0.975,  # Adjust the right spacing
-        hspace=0.0,   # No vertical space between subplots
-        wspace=0.305  # Horizontal space between subplots
-    )
+    # plt.subplots_adjust(
+    #     top=0.9,      # Adjust the top spacing
+    #     bottom=0.08,  # Adjust the bottom spacing
+    #     left=0.07,    # Adjust the left spacing
+    #     right=0.975,  # Adjust the right spacing
+    #     hspace=0.0,   # No vertical space between subplots
+    #     wspace=0.305  # Horizontal space between subplots
+    # )
+    plt.tight_layout()
     plt.show()
     
 
