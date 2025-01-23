@@ -5,7 +5,8 @@ import numpy as np
 from scipy.signal import find_peaks
 import os
 
-# TODO pour les min et les max: mettre la position sur l'axe des y et l'index des max-min sur l'axe des y: la pente de ce graph est lambda/a
+# TODO Fitter une ligne sur les graph dindex pour avoir la pente
+# TODO Formater les graph pour la presentation
 
 def main():
     #  Lecture du fichier CSV
