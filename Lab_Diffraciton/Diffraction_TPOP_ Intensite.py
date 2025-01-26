@@ -24,9 +24,10 @@ def main():
     Intensity_norm = Intensity / I_max
 
     # Convolution
+    Intensity_norm_Convo = Intensity_norm
     window_size = 20
     filter_kernel = np.ones(window_size) / window_size
-    Intensity_norm_Convo = convolve(Intensity_norm, filter_kernel, mode='same')
+    Intensity_norm_Convo = convolve(Intensity_norm_Convo, filter_kernel, mode='same')
     window_size = 5
     filter_kernel = np.ones(window_size) / window_size
     Intensity_norm_Convo = convolve(Intensity_norm_Convo, filter_kernel, mode='same')
@@ -47,7 +48,6 @@ def main():
     pos_min_pix, _ = find_peaks(1/Intensity_norm_Convo)
     pos_min_mm = ((pos_min_pix-convo_max_index)* mm_par_pix)
     mins_angle = np.arctan(pos_min_mm/1000/distance_fente_ecran)
-    mins_val = [Intensity_norm[i] for i in pos_min_pix]
 
     # Creation de la list des index des Min
     n=len(pos_min_mm) # Nombre de minimums
