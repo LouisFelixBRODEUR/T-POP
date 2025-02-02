@@ -6,61 +6,6 @@ from scipy.signal import find_peaks
 import os
 from scipy.optimize import curve_fit
 
-def LP_Filter(time_data, data, cutoff):
-    # Compute sampling frequency
-    dt = np.mean(np.diff(time_data))  # Time step
-    fs = 1 / dt  # Sampling frequency
-    N = len(time_data)  # Number of points
-
-    # Compute FFT
-    fft_A = np.fft.fft(data)
-    freqs = np.fft.fftfreq(N, d=dt)  # Frequency axis
-
-    # for i, val in enumerate(fft_A):
-    #     if val < 0.00003:
-    #         fft_A[i] = 0
-
-    # Apply low-pass filter (remove frequencies > 70 Hz)
-    fft_A[np.abs(freqs) > cutoff] = 0  # Zero out high frequencies
-
-    # Compute inverse FFT to get the filtered signal
-    filtered_A = np.fft.ifft(fft_A).real
-    return filtered_A
-
-def FFT(time_data, data):
-    # Compute the sampling frequency
-    dt = np.mean(np.diff(time_data))  # Time step (assuming uniform spacing)
-    fs = 1 / dt  # Sampling frequency
-
-    # Compute the FFT
-    N = len(time_data)  # Number of points
-    freqs = np.fft.fftfreq(N, d=dt)  # Frequency values
-    fft_data = np.fft.fft(data)  # FFT of Channel A
-
-    # for i, val in enumerate(fft_data):
-    #     if val < 0.00003:
-    #         fft_data[i] = 0
-
-
-    # Keep only the positive frequencies
-    mask = freqs > 0
-    freqs = freqs[mask]
-    fft_data = np.abs(fft_data[mask]) / N  # Normalize magnitude
-
-    # Plot the FFT
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(freqs, fft_data, label="FFT", color="b")
-
-    # Labels and formatting
-    ax.set_xlabel("Frequency (Hz)")
-    ax.set_ylabel("Amplitude")
-    ax.set_title("Frequency Spectrum")
-    ax.legend()
-    ax.grid()
-
-    # Show the plot
-    plt.show()
-
 def main():
     #  Lecture du fichier CSV
     # path = os.path.dirname(os.path.abspath(__file__))+"\\Mesure_1\\Lab_Bruit_Mesure_20250129_093708_Traces.csv"
@@ -135,6 +80,61 @@ def main():
     ax.set_ylabel("Output Read")
     ax.set_title("Channel A and B Signals Over Time")
     ax.legend()
+
+    # Show the plot
+    plt.show()
+
+def LP_Filter(time_data, data, cutoff):
+    # Compute sampling frequency
+    dt = np.mean(np.diff(time_data))  # Time step
+    fs = 1 / dt  # Sampling frequency
+    N = len(time_data)  # Number of points
+
+    # Compute FFT
+    fft_A = np.fft.fft(data)
+    freqs = np.fft.fftfreq(N, d=dt)  # Frequency axis
+
+    # for i, val in enumerate(fft_A):
+    #     if val < 0.00003:
+    #         fft_A[i] = 0
+
+    # Apply low-pass filter (remove frequencies > 70 Hz)
+    fft_A[np.abs(freqs) > cutoff] = 0  # Zero out high frequencies
+
+    # Compute inverse FFT to get the filtered signal
+    filtered_A = np.fft.ifft(fft_A).real
+    return filtered_A
+
+def FFT(time_data, data):
+    # Compute the sampling frequency
+    dt = np.mean(np.diff(time_data))  # Time step (assuming uniform spacing)
+    fs = 1 / dt  # Sampling frequency
+
+    # Compute the FFT
+    N = len(time_data)  # Number of points
+    freqs = np.fft.fftfreq(N, d=dt)  # Frequency values
+    fft_data = np.fft.fft(data)  # FFT of Channel A
+
+    # for i, val in enumerate(fft_data):
+    #     if val < 0.00003:
+    #         fft_data[i] = 0
+
+
+    # Keep only the positive frequencies
+    mask = freqs > 0
+    freqs = freqs[mask]
+    fft_data = np.abs(fft_data[mask]) / N  # Normalize magnitude
+
+    # Plot the FFT
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(freqs, fft_data, label="FFT", color="b")
+
+    # Labels and formatting
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel("Amplitude")
+    ax.set_title("Frequency Spectrum")
+    ax.legend()
+    ax.grid()
 
     # Show the plot
     plt.show()
