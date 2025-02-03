@@ -5,6 +5,7 @@ import numpy as np
 from scipy.signal import find_peaks
 import os
 from scipy.optimize import curve_fit
+from matplotlib.ticker import EngFormatter
 
 def main():
     #  Lecture du fichier CSV
@@ -61,27 +62,73 @@ def main():
     print((Val_chan_B_Hight - Val_chan_B_Low)/Val_chan_B_Low*100)
     # print((Val_chan_B_Low - Val_chan_B_Hight)/Val_chan_B_Hight*100)
 
+    # Création de la figure et des axes
     fig, ax = plt.subplots(figsize=(10, 5))
 
-    # Plot the data
-    # ax.plot(time, chan_A, label="Channel A", color="b", linewidth=1)
-    ax.plot(time, chan_B, label="Channel B", color="r", linewidth=0.5)
-    # ax.plot(time, filtered_chan_B, label="Filtered Channel B", color="green", linewidth=1)
+    # Tracer la donnée principale
+    ax.plot(time, chan_B, label="Signal du détecteur (DET36A2)", color="blue", linewidth=1)
 
-    ax.axhline(y=Val_chan_B_Hight, color="red", linestyle="--", linewidth=2, label="chan B High")
-    ax.axhline(y=Val_chan_B_Low, color="red", linestyle="--", linewidth=2, label="chan B Low")
+    # Tracer les valeurs moyennes (haut et bas)
+    ax.axhline(y=Val_chan_B_Hight, color="#46eb73", linestyle="-", linewidth=2, label="Moyenne signal haut")
+    ax.axhline(y=Val_chan_B_Low, color="#ff8f17", linestyle="-", linewidth=2, label="Moyenne signal bas")
 
-    # ax.axhline(y=Val_chan_B_fil_Hight, color="green", linestyle="--", linewidth=2, label="chan B High")
-    # ax.axhline(y=Val_chan_B_fil_Low, color="green", linestyle="--", linewidth=2, label="chan B Low")
+    # Tracer les zones d'incertitude (écart-type) avec un remplissage
+    ax.fill_between(time, Val_chan_B_Hight - Val_chan_B_Hight_STD, Val_chan_B_Hight + Val_chan_B_Hight_STD, 
+                    color="#46eb73", alpha=0.2, label="Incertitude signal haut")
+    ax.fill_between(time, Val_chan_B_Low - Val_chan_B_Low_STD, Val_chan_B_Low + Val_chan_B_Low_STD, 
+                    color="#ff8f17", alpha=0.2, label="Incertitude signal bas")
+
+    # Ajouter les labels et le titre
+    ax.set_xlabel("Temps", fontsize=25)
+    ax.set_ylabel("Signal de sortie", fontsize=25)
+    # ax.set_title("Signal de sortie du détecteur DET36A2 exposé par une led oscillante à 5Hz en fonction du temps", fontsize=14)
 
 
-    # Add labels and title
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Output Read")
-    ax.set_title("Channel A and B Signals Over Time")
-    ax.legend()
+    ax.yaxis.set_major_formatter(EngFormatter(unit='V')) 
+    formatter = EngFormatter(unit="s", places=3)  # places=3 ensures "ms"
+    ax.xaxis.set_major_formatter(formatter)
+    ax.set_xticks(ax.get_xticks())  # Refresh ticks
+    ax.set_xticklabels([f"{tick * 1e3:.0f} ms" for tick in ax.get_xticks()])  # Convert to ms
 
-    # Show the plot
+    ax.set_ylim(0.012, 0.0185)
+    ax.set_xlim(-1.1, 1.1)
+
+    # Add text
+    a=0
+    b=0.00073
+    equation = f"Signal haut = {round(Val_chan_B_Hight*1000,2)}±{round(Val_chan_B_Hight_STD*1000,2)}mV"
+    x_min, x_max = chan_B.min(), chan_B.max()
+    y_min, y_max = time.min(), time.max()
+    plt.text(
+        -0.5+a,
+        0.0173+b,
+        equation,
+        fontsize=25,
+        color="#46eb73"
+    )
+    equation = f"Signal bas = {round(Val_chan_B_Low*1000,2)}±{round(Val_chan_B_Low_STD*1000,2)}mV"
+    x_min, x_max = chan_B.min(), chan_B.max()
+    y_min, y_max = time.min(), time.max()
+    plt.text(
+        -0.5+a,
+        0.017+b,
+        equation,
+        fontsize=25,
+        color="#ff8f17"
+    )
+
+    # Ajouter une grille
+    ax.grid(True, linestyle='--', alpha=0.6)
+
+    # Ajouter une légende
+    ax.legend(fontsize=15, loc='upper left')
+
+    # Ajuster la taille des étiquettes des axes
+    ax.tick_params(axis='both', which='major', labelsize=20)
+
+    # Afficher le graphique
+    # plt.tight_layout()
+    fig.subplots_adjust(left=0.085, right=0.99, top=0.99, bottom=0.085)
     plt.show()
 
 def LP_Filter(time_data, data, cutoff):
