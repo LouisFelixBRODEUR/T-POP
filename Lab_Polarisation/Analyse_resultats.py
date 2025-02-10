@@ -79,13 +79,13 @@ plt.plot(angle_B, data_B, marker='^', linestyle='', label="Intensité TE", color
 plt.plot(angle_Fitted, B_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit (n₂={n2_B:.4f} ± {n2_B_uncertainty:.4f})", color = 'orange', linewidth=2)
 
 #X Axis
-plt.xlabel("Angle", fontsize=25)
+plt.xlabel("Angle", fontsize=20)
 plt.gca().xaxis.set_major_formatter(NoSpaceEngFormatter(unit='°'))
 plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
 plt.xlim(0, 95)
 
 # Y Axis
-plt.ylabel("Intensité Relative", fontsize=25)
+plt.ylabel("Intensité Relative", fontsize=20)
 # plt.gca().yaxis.set_major_formatter(NoSpaceEngFormatter(unit='µA'))
 # plt.yscale('log')
 # plt.ylim(None, 1.5)
