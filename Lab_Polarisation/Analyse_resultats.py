@@ -42,7 +42,8 @@ initial_guess = [1.5]
 params, covariance = curve_fit(Para_Reflectivite, angle_A, data_A, p0=initial_guess, bounds=bounds)
 n2_A = params[0]
 n2_A_uncertainty = np.sqrt(covariance[0, 0])
-A_data_Fitted = Para_Reflectivite(angle_A, n2_A)
+angle_Fitted = np.linspace(0,90,1000)
+A_data_Fitted = Para_Reflectivite(angle_Fitted, n2_A)
 
 def Perp_Reflectivite(theta1, n2):
     n1 = 1
@@ -56,7 +57,7 @@ initial_guess = [1.5]
 params, covariance = curve_fit(Perp_Reflectivite, angle_B, data_B, p0=initial_guess, bounds=bounds)
 n2_B = params[0]
 n2_B_uncertainty = np.sqrt(covariance[0, 0])
-B_data_Fitted = Perp_Reflectivite(angle_B, n2_B)
+B_data_Fitted = Perp_Reflectivite(angle_Fitted, n2_B)
 
 
 # Compute Brewster avec Incertitudes
@@ -73,9 +74,9 @@ print(f'Brewster TE : {a:.4f} ± {(b+c)/2:.4f}')
 # Plot Data
 plt.figure(figsize=(8, 6))
 plt.plot(angle_A, data_A, marker='o', linestyle='', label="Intensité TM", color = 'blue', markersize=8)
-plt.plot(angle_A, A_data_Fitted, marker='', linestyle=':', label=f"Intensité TM Fit (n₂={n2_A:.4f} ± {n2_A_uncertainty:.4f})", color = 'blue', linewidth=2)
+plt.plot(angle_Fitted, A_data_Fitted, marker='', linestyle=':', label=f"Intensité TM Fit (n₂={n2_A:.4f} ± {n2_A_uncertainty:.4f})", color = 'blue', linewidth=2)
 plt.plot(angle_B, data_B, marker='^', linestyle='', label="Intensité TE", color = 'orange', markersize=8)
-plt.plot(angle_B, B_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit (n₂={n2_B:.4f} ± {n2_B_uncertainty:.4f})", color = 'orange', linewidth=2)
+plt.plot(angle_Fitted, B_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit (n₂={n2_B:.4f} ± {n2_B_uncertainty:.4f})", color = 'orange', linewidth=2)
 
 #X Axis
 plt.xlabel("Angle", fontsize=25)
@@ -86,7 +87,7 @@ plt.xlim(0, 95)
 # Y Axis
 plt.ylabel("Intensité Relative", fontsize=25)
 # plt.gca().yaxis.set_major_formatter(NoSpaceEngFormatter(unit='µA'))
-# plt.yscale('log')
+plt.yscale('log')
 # plt.ylim(None, 1.5)
 
 # General
