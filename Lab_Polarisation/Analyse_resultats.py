@@ -87,7 +87,7 @@ plt.xlim(0, 95)
 # Y Axis
 plt.ylabel("Intensité Relative", fontsize=25)
 # plt.gca().yaxis.set_major_formatter(NoSpaceEngFormatter(unit='µA'))
-plt.yscale('log')
+# plt.yscale('log')
 # plt.ylim(None, 1.5)
 
 # General
