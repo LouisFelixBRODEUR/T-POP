@@ -59,6 +59,24 @@ n2_B = params[0]
 n2_B_uncertainty = np.sqrt(covariance[0, 0])
 B_data_Fitted = Perp_Reflectivite(angle_Fitted, n2_B)
 
+def Combine_TE_TM(theta1, n2, coef_TE):
+    return coef_TE*Perp_Reflectivite(theta1, n2)+(1-coef_TE)*Para_Reflectivite(theta1, n2)
+bounds = ([1,0], [5,1])
+initial_guess = [1.5, 0.5]
+# Fit Perp
+params_Perp, covariance_Perp = curve_fit(Combine_TE_TM, angle_B, data_B, p0=initial_guess, bounds=bounds)
+n2_Perp = params_Perp[0]
+Perp_coef_TE = params_Perp[1]
+n2_Perp_uncertainty = np.sqrt(covariance_Perp[0, 0])
+Perp_data_Fitted = Combine_TE_TM(angle_Fitted, n2_Perp, Perp_coef_TE)
+# Fit Para
+params_Para, covariance_Para = curve_fit(Combine_TE_TM, angle_A, data_A, p0=initial_guess, bounds=bounds)
+n2_Para = params_Para[0]
+Para_coef_TE = params_Para[1]
+n2_Para_uncertainty = np.sqrt(covariance_Para[0, 0])
+Para_data_Fitted = Combine_TE_TM(angle_Fitted, n2_Para, Para_coef_TE)
+
+
 
 # Compute Brewster avec Incertitudes
 def Compute_Brewster(n2, n2_err):
@@ -73,16 +91,21 @@ print(f'Brewster TE : {a:.4f} ± {(b+c)/2:.4f}')
 
 # Plot Data
 plt.figure(figsize=(8, 6))
+# plt.plot(angle_A, data_A, marker='o', linestyle='', label="Intensité TM", color = 'blue', markersize=8)
+# plt.plot(angle_Fitted, A_data_Fitted, marker='', linestyle=':', label=f"Intensité TM Fit (n₂={n2_A:.4f} ± {n2_A_uncertainty:.4f})", color = 'blue', linewidth=2)
+# plt.plot(angle_B, data_B, marker='^', linestyle='', label="Intensité TE", color = 'orange', markersize=8)
+# plt.plot(angle_Fitted, B_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit (n₂={n2_B:.4f} ± {n2_B_uncertainty:.4f})", color = 'orange', linewidth=2)
 plt.plot(angle_A, data_A, marker='o', linestyle='', label="Intensité TM", color = 'blue', markersize=8)
-plt.plot(angle_Fitted, A_data_Fitted, marker='', linestyle=':', label=f"Intensité TM Fit (n₂={n2_A:.4f} ± {n2_A_uncertainty:.4f})", color = 'blue', linewidth=2)
+plt.plot(angle_Fitted, Para_data_Fitted, marker='', linestyle=':', label=f"Intensité TM Fit [n₂={n2_Perp:.4f} ± {n2_Perp_uncertainty:.4f}] [{(1-Para_coef_TE)*100:.2f}% TM]", color = 'blue', linewidth=2)
 plt.plot(angle_B, data_B, marker='^', linestyle='', label="Intensité TE", color = 'orange', markersize=8)
-plt.plot(angle_Fitted, B_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit (n₂={n2_B:.4f} ± {n2_B_uncertainty:.4f})", color = 'orange', linewidth=2)
+plt.plot(angle_Fitted, Perp_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit [n₂={n2_Para:.4f} ± {n2_Para_uncertainty:.4f}] [{Perp_coef_TE*100:.2f}% TE]", color = 'orange', linewidth=2)
 
 #X Axis
 plt.xlabel("Angle", fontsize=20)
 plt.gca().xaxis.set_major_formatter(NoSpaceEngFormatter(unit='°'))
 plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
-plt.xlim(0, 95)
+plt.xlim(0, 90)
+plt.xticks(np.arange(0, 90 + 1, 10))  
 
 # Y Axis
 plt.ylabel("Reflectivité (I/Iₘₐₓ)", fontsize=25)
