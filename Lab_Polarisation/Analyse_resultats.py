@@ -96,9 +96,9 @@ plt.figure(figsize=(8, 6))
 # plt.plot(angle_B, data_B, marker='^', linestyle='', label="Intensité TE", color = 'orange', markersize=8)
 # plt.plot(angle_Fitted, B_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit (n₂={n2_B:.4f} ± {n2_B_uncertainty:.4f})", color = 'orange', linewidth=2)
 plt.plot(angle_A, data_A, marker='o', linestyle='', label="Intensité TM", color = 'blue', markersize=8)
-plt.plot(angle_Fitted, Para_data_Fitted, marker='', linestyle=':', label=f"Intensité TM Fit [n₂={n2_Perp:.4f} ± {n2_Perp_uncertainty:.4f}] [{(1-Para_coef_TE)*100:.2f}% TM]", color = 'blue', linewidth=2)
+plt.plot(angle_Fitted, Para_data_Fitted, marker='', linestyle=':', label=f"Intensité TM Fit [n₂={n2_Para:.4f} ± {n2_Para_uncertainty:.4f}] [{(1-Para_coef_TE)*100:.2f}% TM]", color = 'blue', linewidth=2)
 plt.plot(angle_B, data_B, marker='^', linestyle='', label="Intensité TE", color = 'orange', markersize=8)
-plt.plot(angle_Fitted, Perp_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit [n₂={n2_Para:.4f} ± {n2_Para_uncertainty:.4f}] [{Perp_coef_TE*100:.2f}% TE]", color = 'orange', linewidth=2)
+plt.plot(angle_Fitted, Perp_data_Fitted, marker='', linestyle='--', label=f"Intensité TE Fit [n₂={n2_Perp:.4f} ± {n2_Perp_uncertainty:.4f}] [{Perp_coef_TE*100:.2f}% TE]", color = 'orange', linewidth=2)
 
 #X Axis
 plt.xlabel("Angle", fontsize=20)
