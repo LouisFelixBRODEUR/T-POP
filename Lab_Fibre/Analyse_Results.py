@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import os
 from scipy.optimize import curve_fit
+from scipy.special import jn, jn_zeros
 
 
 # List of files to process
@@ -88,33 +89,26 @@ intensity_combined = intensity_combined-22.8
 # Intensité relative
 intensity_combined = intensity_combined/np.max(intensity_combined)
 
-# # Fit
-# def gaussian(r, A1, w1):
-#     return A1 * np.exp(-r**2 / (2 * w1**2))
-# # Gauss 1
-# bounds = ([0.99,0],[1.01,35])
-# initial_guess = [1.0, 20.0]
-# popt, pcov = curve_fit(gaussian, r_combined, intensity_combined, bounds=bounds, p0=initial_guess)
-# A1_fit, sigma1_fit = popt
-# r_fit = np.linspace(min(r_combined), max(r_combined), 500)
-# # print(A1_fit)
-# # print(sigma1_fit)
-# fit_curve_gauss1 = gaussian(r_fit, *popt)
-# # # Gauss 2
-# # bounds = ([0.3,50],[0.5,100])
-# # initial_guess = [0.4, 60]
-# # popt, pcov = curve_fit(gaussian, r_combined, intensity_combined, bounds=bounds, p0=initial_guess)
-# # A2_fit, sigma2_fit = popt
-# # print(A2_fit)
-# # print(sigma2_fit)
-# # fit_curve_gauss2 = gaussian(r_fit, *popt)
-# # fit_curve_gauss2 = gaussian(r_fit, 0.45, 80)
+# Fit des 2 premiers modes: LP01 & LP11
+def intensity_profile(r, w_0, I_1, beta_1):
+    first_zero = jn_zeros(1, 1)[0] / beta_1  # First zero of J_1 divided by beta_1
+    Intensite_LP01 = np.exp(-2 * r**2 / w_0**2)
+    Intensite_LP11 = I_1 * (jn(1, beta_1 * r))**2
+    total_intensity = Intensite_LP01 + Intensite_LP11
+    total_intensity[np.abs(r) > first_zero] = 0
+    return total_intensity
+
+bounds = ([0,0,0], [300,1,0.1])
+initial_guess = [50,0.5,0.01]
+params, covariance = curve_fit(intensity_profile, r_combined, intensity_combined, p0=initial_guess, bounds=bounds)
+print(params)
+w_0, Int_1, beta_1 = params
+Fit_Intensity = intensity_profile(r_combined, w_0, Int_1, beta_1)
 
 # Affichage du résultat
 plt.figure(figsize=(10, 5))
-plt.plot(r_combined, intensity_combined, label="Profil radial", linestyle="-", c='blue')
-# plt.plot(r_fit, fit_curve_gauss1, label="Fit gaussienne 1", linestyle="--", c='green')
-# plt.plot(r_fit, fit_curve_gauss2, label="Fit gaussienne 2", linestyle="--", c='red')
+plt.plot(r_combined, intensity_combined, label="Profil Radial", linestyle="-", c='blue')
+plt.plot(r_combined, Fit_Intensity, label="Profil Radial Fit (LP01 & LP11)", linestyle="--", c='red')
 plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
 plt.xlabel("Distance radiale (pixels)", fontsize=25)
 plt.ylabel("Intensité normalisée (I/Iₘₐₓ)", fontsize=25)
