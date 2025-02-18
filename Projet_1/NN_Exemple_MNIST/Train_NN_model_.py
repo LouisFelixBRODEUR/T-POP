@@ -15,7 +15,7 @@ model_name = 'model_test.pth'
 def load_data(file_path):
     data = pd.read_csv(file_path, header=None)
     images = data.iloc[:, 1:].values.astype(np.float32)  # after 1rst row = data
-    labels = data.iloc[:, 0].values.astype(np.int64)  # 1er row = identification
+    labels = data.iloc[:, 0].values.astype(np.int64)  # 1rst row = identification
     images = images / 255.0 # Normalization des pix
     
     return images, labels

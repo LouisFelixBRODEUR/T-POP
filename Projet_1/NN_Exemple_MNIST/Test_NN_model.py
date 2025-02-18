@@ -25,7 +25,7 @@ class SimpleNN(nn.Module):
         return x
 
 # Function pour dessiner sur un 28x28 canvas
-def show_skills_draw_old():
+def show_skills_draw():
     root = tk.Tk()
     root.title("Draw on 28x28 Canvas")
     canvas_size = 500
