@@ -8,8 +8,9 @@ from sklearn.preprocessing import StandardScaler
 import os
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 
-model_name = 'model_test.pth'
+model_name = 'model_droppout_50epochs.pth'
 
 # ----------------------------------------------Load and Preprocess the Data--------------------------------------------------
 def load_data(file_path):
@@ -68,8 +69,54 @@ class SimpleNN(nn.Module):
         x = self.fc3(x)  # output layer
         return x
 
+# Convolution pour meilleur analyse d'image
+class ConvNN(nn.Module):
+    def __init__(self):
+        super(ConvNN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=5, padding=2)  # 28x28 -> 28x28
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)  # 28x28 -> 14x14
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5)  # 14x14 -> 10x10
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)  # 10x10 -> 5x5
+        self.fc1 = nn.Linear(32 * 5 * 5, 128)  # Flattened 5x5x32
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 10)  # Output layer (10 classes)
+
+    def forward(self, x):
+        x = x.view(-1, 1, 28, 28)  
+        x = F.relu(self.conv1(x))  # Conv1 + ReLU
+        x = self.pool(x)  # Max Pooling
+        x = F.relu(self.conv2(x))  # Conv2 + ReLU
+        x = self.pool2(x)  # Max Pooling
+        x = torch.flatten(x, 1)  # Flatten feature maps
+        x = F.relu(self.fc1(x))  # Fully Connected 1
+        x = F.relu(self.fc2(x))  # Fully Connected 2
+        x = self.fc3(x)  # Output layer (logits)
+        return x
+    
+# Dropout to reduce overfitting 
+class DropoutNN(nn.Module):
+    def __init__(self):
+        super(DropoutNN, self).__init__()
+        self.fc1 = nn.Linear(784, 128)
+        self.dropout1 = nn.Dropout(0.5)  # 50% dropout
+        self.fc2 = nn.Linear(128, 64)
+        self.dropout2 = nn.Dropout(0.3)  # 30% dropout
+        self.fc3 = nn.Linear(64, 10)
+
+    def forward(self, x):
+        x = x.view(x.size(0), -1)  # Flatten input: (batch_size, 1, 28, 28) -> (batch_size, 784)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout1(x)
+        x = torch.relu(self.fc2(x))
+        x = self.dropout2(x)
+        x = self.fc3(x)
+        return x
+
 # ----------------------------------------------Train the Model--------------------------------------------------
-model = SimpleNN() 
+# model = SimpleNN() 
+# model = ConvNN()
+model = DropoutNN()
+
 criterion = nn.CrossEntropyLoss()  # Fonction de perte (Cross-Entropy Loss) good pour job de classification (0-9 digit out)
 optimizer = optim.Adam(model.parameters(), lr=0.001) 
 '''
@@ -77,7 +124,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 # Adaptive Moment Estimation (ADAM) => lr modulable avec le momentum de lamelioration du model
 '''
 # Nombre d'iteration de training sur le dataset
-num_epochs = 5
+num_epochs = 3
 
 for epoch in range(num_epochs):
     model.train() 
