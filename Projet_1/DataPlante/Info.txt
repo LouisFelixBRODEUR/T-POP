@@ -1,0 +1,7 @@
+Fibre:
+	-Part #: QP600-1-SR
+	-Assembly #: OOS-009123-57
+Spectro:
+	-Oceqn Optics
+	-Modele: USB4000
+	-SN: USB4F10415 ou 211-00000-CUS jsp
