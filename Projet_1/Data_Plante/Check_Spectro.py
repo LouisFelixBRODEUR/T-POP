@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
-base_dir = os.path.dirname(os.path.abspath(__file__))
+import matplotlib.cm as cm
+import matplotlib
 
 # Identifie les folders qui commence avec 'Plante'
 def get_Plante_folders(base_dir):
@@ -24,68 +24,110 @@ def get_tige_feuille_folders(base_dir):
                 tige_folders.append(full_path)
     return feuille_folders, tige_folders
 
-# c:\Users\louis\Documents\ULaval_S4\TPOP\GitWorkSpace\Projet_1\Data_Plante\Plante_Dragon
-# c:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_1\\Data_Plante\\Plante_Dragon
+def get_wavelength_data(file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
 
-# donne une liste de couple de list pour le data dans le folder [(x1,y1),(x2,y2),(x3,y3),...]
-def get_data_from_folder(base_dir):
-    spectral_data = {}
+    # Find the starting point of spectral data
+    for i, line in enumerate(lines):
+        if ">>>>>Begin Spectral Data<<<<<" in line:
+            data_start = i + 1
+            break
+
+    # Read spectral data and extract only wavelength values
+    data = pd.read_csv(file_path, skiprows=data_start, delimiter="\t", names=["Wavelength", "Intensity"])
+    return data["Wavelength"].tolist()  # Return only the wavelength column as a list
+
+def get_intensity_data_from_folder(base_dir):
+    intensity_data = []
     for file_name in os.listdir(base_dir):
         if file_name.endswith(".txt"):  # Process only .txt files
             file_path = os.path.join(base_dir, file_name)
+
             with open(file_path, "r") as file:
                 lines = file.readlines()
+            
+            # Find the starting point of spectral data
             for i, line in enumerate(lines):
                 if ">>>>>Begin Spectral Data<<<<<" in line:
                     data_start = i + 1
                     break
+
+            # Read spectral data and extract only intensity values
             data = pd.read_csv(file_path, skiprows=data_start, delimiter="\t", names=["Wavelength", "Intensity"])
-            spectral_data[file_name] = list(data.itertuples(index=False, name=None))
+            intensity_data.append(data["Intensity"].tolist())  # Append only the intensity column as a list
+    return intensity_data
 
-    return spectral_data
+def make_plant_Database():
+    Plant_DataBase = {}
+    for Plante_Folder in get_Plante_folders(os.path.dirname(os.path.abspath(__file__))):
+        Plante_name = Plante_Folder.split('\\')[-1]
+        Plant_DataBase[Plante_name] = {'Feuille':{}, 'Tige':{}}
+        tige_plante_path = get_tige_feuille_folders(Plante_Folder)
+
+        for feuille_number_path in tige_plante_path[0]:
+            Plant_DataBase[Plante_name]['Feuille'][feuille_number_path.split('\\')[-1]] = get_intensity_data_from_folder(feuille_number_path)
+        
+        for tige_number_path in tige_plante_path[1]:
+            Plant_DataBase[Plante_name]['Tige'][tige_number_path.split('\\')[-1]] = get_intensity_data_from_folder(tige_number_path)
+
+    for file_name in os.listdir(tige_number_path):
+        if file_name.endswith(".txt"):
+            wavelength_path = os.path.join(tige_number_path, file_name)
+    Plant_DataBase['wavelength'] = get_wavelength_data(wavelength_path)
+
+    return Plant_DataBase
+
+def moving_average(data, window_size=50):
+    kernel = np.ones(window_size) / window_size  # Create a uniform kernel
+    return np.convolve(data, kernel, mode='same')  # Apply convolution
+
+def get_background():
+    light_source_background_path = os.path.dirname(os.path.abspath(__file__))+"\\BackGround\\"
+    return get_intensity_data_from_folder(light_source_background_path)[0]
+
+def Show_data(Plant_DataBase, plant_part_to_show):
+    Background_data = moving_average(get_background())
+    wavelength = Plant_DataBase['wavelength']
+
+    # range de nanometre a analyser
+    Cap_high = 675
+    Cap_low = 450
+    wavelength_0 = wavelength[0]
+    wavelength_delta_bin = wavelength[1]-wavelength[0]
+    low_index = int((Cap_low - wavelength_0)/wavelength_delta_bin)
+    high_index = int((Cap_high - wavelength_0)/wavelength_delta_bin)
+    wavelength = wavelength[low_index:high_index]
+    Background_data = Background_data[low_index:high_index]
+
+    plant_types = list(Plant_DataBase.keys())[:-1]
+    # color_map = plt.get_cmap('tab10', len(plant_types))
+    # plant_colors = {plant: color_map(i) for i, plant in enumerate(plant_types)}
+    plant_colors = ['red', 'blue']
+    plt.figure(figsize=(10, 5))
+    for j, Plante_type in enumerate(plant_types):
+        color = plant_colors[j]  # Get assigned color for the plant type
+        for plant_part in Plant_DataBase[Plante_type].keys():
+            if plant_part == plant_part_to_show:
+                for plant_part_number in Plant_DataBase[Plante_type][plant_part].keys():
+                    label = f'{Plante_type} {plant_part_number}'
+                    for i, data in enumerate(Plant_DataBase[Plante_type][plant_part][plant_part_number]):
+                        data = moving_average(data[low_index:high_index])
+                        data = (np.array(data)/np.array(Background_data))
+                        data = data/np.max(data)
+                        plt.plot(wavelength, data, label=label + f'.{i+1}', color=color, linewidth=0.8)
+    # plt.plot(wavelength, Background_data, label='LS', color='red', linewidth=0.8)
+    plt.xlabel("Wavelength (nm)")
+    plt.ylabel("Intensity")
+    plt.title("Spectral Data Analysis by Plant Type")
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+Database = make_plant_Database()
+Show_data(Database, 'Feuille')
+Show_data(Database, 'Tige')
 
 
 
 
-
-# path_feuille_drag = os.path.dirname(os.path.abspath(__file__))+"\\Plante_Dragon\\Feuille_1\\USB4F104151__19__12-14-57-321.txt"
-# path_feuille_lim = os.path.dirname(os.path.abspath(__file__))+"\\Plante_Limace(Golden_Pothos)\\Feuille_1\\USB4F104151__0__11-38-47-480.txt"
-
-# # Read the file
-# def data_from(path):
-#     with open(path, "r") as file:
-#         lines = file.readlines()
-#     for i, line in enumerate(lines):
-#         if ">>>>>Begin Spectral Data<<<<<" in line:
-#             data_start = i + 1
-#             break
-#     return pd.read_csv(path, skiprows=data_start, delimiter="\t", names=["Wavelength", "Intensity"])
-
-# data_lim = data_from(path_feuille_lim)
-# data_drag = data_from(path_feuille_drag)
-# longueur_donde_lim = data_lim["Wavelength"]
-# longueur_donde_drag = data_drag["Wavelength"]
-# intensite_lim = data_lim["Intensity"]
-# intensite_drag = data_drag["Intensity"]
-
-# intensite_lim = intensite_lim/np.max(intensite_lim)
-# intensite_drag = intensite_drag/np.max(intensite_drag)
-
-Plant_DataBase = {}
-for Plante_Folder in get_Plante_folders(os.path.abspath(__file__)):
-    Plant_DataBase[Plante_Folder] = {}
-
-
-
-
-
-# # Plot the spectrum
-# plt.figure(figsize=(10, 5))
-# plt.plot(longueur_donde_lim, intensite_lim, label="Limace", color='b')
-# plt.plot(longueur_donde_drag, intensite_drag, label="Dragon", color='r')
-# plt.xlabel("Wavelength (nm)")
-# plt.ylabel("Intensity")
-# plt.title("Spectral Data Analysis")
-# plt.legend()
-# plt.grid()
-# plt.show()
