@@ -56,15 +56,12 @@ def Prepare_data(Plante_folder, Background_folder):
     Spectro_data = [arr for arr in Spectro_data if np.all(np.max(arr) <= 63500)] # Remove saturated
 
     # range de nanometre a analyser
+    Cap_low, Cap_high = 400, 700
     # Cap_low, Cap_high = 443, 657
-    Cap_low, Cap_high = 505, 592
+    # Cap_low, Cap_high = 505, 592
 
     low_index = np.argmin(np.abs(Wavelenght_bins - Cap_low))
     high_index = np.argmin(np.abs(Wavelenght_bins - Cap_high))
-
-    # delta_bin = Wavelenght_bins[1]-Wavelenght_bins[0]
-    # low_index = int((Cap_low - Wavelenght_bins[0])/delta_bin)
-    # high_index = int((Cap_high - Wavelenght_bins[0])/delta_bin)
 
     Spectro_data =[arr[low_index:high_index] for arr in Spectro_data]
     Wavelenght_bins = Wavelenght_bins[low_index:high_index]
@@ -92,7 +89,7 @@ for i, data in enumerate(Plante_1_data):
     plt.ylabel("Intensity")
     plt.title("Spectral Data Analysis by Plant Type")
     plt.grid()
-plt.show()
+# plt.show()
 for i, data in enumerate(Plante_2_data):
     if i == 0:
         plt.plot(Wavelenght_bins, data, label='Kalanchoe daigremontianum', color = 'red', linewidth=0.8)

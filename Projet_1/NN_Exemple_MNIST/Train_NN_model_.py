@@ -9,8 +9,10 @@ import os
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-model_name = 'model_droppout_50epochs.pth'
+model_name = 'model_test.pth'
 
 # ----------------------------------------------Load and Preprocess the Data--------------------------------------------------
 def load_data(file_path):
@@ -47,7 +49,7 @@ train_dataset = MNISTDataset(X_train, y_train)
 val_dataset = MNISTDataset(X_val, y_val)
 test_dataset = MNISTDataset(test_images, test_labels)
 
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) # Batch size of 64 = les data sont analyser en paquet de 64
 val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
@@ -156,16 +158,30 @@ for epoch in range(num_epochs):
 # ----------------------------------------------Save the Trained Model--------------------------------------------------
 torch.save(model.state_dict(), os.path.dirname(os.path.abspath(__file__))+ '\\' + model_name)
 
+# # ----------------------------------------------Test the Model--------------------------------------------------
+# model.load_state_dict(torch.load(os.path.dirname(os.path.abspath(__file__))+ '\\' + model_name)) # Load the saved model
+# model.eval()
+# correct_predictions = 0
+# total_samples = 0
+# with torch.no_grad():  # pas de grad car pas dajustement de poids
+#     for images, labels in test_loader:
+#         outputs = model(images)
+#         _, predicted = torch.max(outputs, 1) # valeur de reference
+#         correct_predictions += (predicted == labels).sum().item()  # nombre de prediction ok
+#         total_samples += labels.size(0)
+# accuracy = correct_predictions / total_samples * 100
+# print(f"Test Accuracy: {accuracy:.2f}%")
 # ----------------------------------------------Test the Model--------------------------------------------------
 model.load_state_dict(torch.load(os.path.dirname(os.path.abspath(__file__))+ '\\' + model_name)) # Load the saved model
 model.eval()
 correct_predictions = 0
 total_samples = 0
 with torch.no_grad():  # pas de grad car pas dajustement de poids
-    for images, labels in test_loader:
+    for images, labels in val_loader:
         outputs = model(images)
         _, predicted = torch.max(outputs, 1) # valeur de reference
         correct_predictions += (predicted == labels).sum().item()  # nombre de prediction ok
         total_samples += labels.size(0)
 accuracy = correct_predictions / total_samples * 100
 print(f"Test Accuracy: {accuracy:.2f}%")
+
