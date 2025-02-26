@@ -41,28 +41,28 @@ def moving_average(data, window_size=5):
 def Prepare_data(Plante_folder, Background_folder):
     Background_data = get_intensity_data_from_folder(Background_folder)
     Background_data = np.mean(Background_data, axis=0)
-    Wavelenght_bins = get_wavelength_data(Background_folder)
+    Wavelength_bins = get_wavelength_data(Background_folder)
 
     Spectro_data = get_intensity_data_from_folder(Plante_folder)
     Spectro_data = [arr for arr in Spectro_data if np.all(np.max(arr) <= 63500)] # Remove saturated
 
     # range de nanometre a analyser
-    # Cap_low, Cap_high = 400, 700
-    Cap_low, Cap_high = 443, 657
-    # Cap_low, Cap_high = 505, 592
+    # Cap_low, Cap_high = 0, 1000
+    Cap_low, Cap_high = 420, 670
+    # Cap_low, Cap_high = 443, 657
+    low_index = np.argmin(np.abs(Wavelength_bins - Cap_low))
+    high_index = np.argmin(np.abs(Wavelength_bins - Cap_high))
 
-    low_index = np.argmin(np.abs(Wavelenght_bins - Cap_low))
-    high_index = np.argmin(np.abs(Wavelenght_bins - Cap_high))
-
-    Spectro_data =[arr[low_index:high_index] for arr in Spectro_data]
-    # Wavelenght_bins = Wavelenght_bins[low_index:high_index]
+    Spectro_data = [arr[low_index:high_index] for arr in Spectro_data]
+    Wavelength_bins = Wavelength_bins[low_index:high_index]
     Background_data = Background_data[low_index:high_index]
 
-    # Spectro_data = [moving_average(arr) for arr in Spectro_data]
-    Background_data = moving_average(Background_data)
-    Spectro_data = [(np.array(arr)/np.array(Background_data)) for arr in Spectro_data]
-    Spectro_data = [arr/np.max(arr) for arr in Spectro_data]
-    # return Spectro_data, Wavelenght_bins
+    Spectro_data = [arr / np.max(arr) for arr in Spectro_data]
+    Background_data = moving_average(Background_data, window_size=30)
+    epsilon = 1e-3  # Small value to avoid division by zero
+    Spectro_data = [(arr / np.clip(Background_data, epsilon, None)) for arr in Spectro_data]
+    Spectro_data = [moving_average(arr, window_size=10) for arr in Spectro_data]
+
     return Spectro_data
 
 def get_intensity_data_from_folder(base_dir):
