@@ -57,47 +57,50 @@ def Prepare_data(Plante_folder, Background_folder):
 
     # range de nanometre a analyser
     # Cap_low, Cap_high = 0, 1000
-    # Cap_low, Cap_high = 420, 670
-    Cap_low, Cap_high = 442, 655
+    Cap_low, Cap_high = 420, 670
+    # Cap_low, Cap_high = 450, 650
     low_index = np.argmin(np.abs(Wavelength_bins - Cap_low))
     high_index = np.argmin(np.abs(Wavelength_bins - Cap_high))
+
+    Background_data = moving_average(Background_data, window_size=5) # Smoothen Background
+    # Background_data = Background_data/np.max(Background_data) # Normalize Background
+    Spectro_data = [arr/Background_data for arr in Spectro_data] # Divide Data by Background
 
     Spectro_data = [arr[low_index:high_index] for arr in Spectro_data]
     Wavelength_bins = Wavelength_bins[low_index:high_index]
     Background_data = Background_data[low_index:high_index]
 
-    Spectro_data = [arr / np.max(arr) for arr in Spectro_data]
-    Background_data = moving_average(Background_data, window_size=30)
-    Spectro_data = [arr / Background_data for arr in Spectro_data]
-    Spectro_data = [moving_average(arr, window_size=10) for arr in Spectro_data]
+    # Spectro_data = [moving_average(arr, window_size=30) for arr in Spectro_data] # Smoothen Spectral Data
+    Spectro_data = [arr / np.max(arr) for arr in Spectro_data] # Normalize Spectral Data
+    # Spectro_data -= Background_data
 
-    return Spectro_data, Wavelength_bins
+
+    return Spectro_data, Wavelength_bins, Background_data
 
 Plante_1_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Scindapsus_aureus_100ms\\"
 Plante_2_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Kalanchoe_daigremontianum_100ms\\"
 Background_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Background_30ms_feuille_blanche\\"
 
-Plante_1_data, Wavelength_bins = Prepare_data(Plante_1_folder, Background_folder)
-Plante_2_data, _ = Prepare_data(Plante_2_folder, Background_folder)
+Plante_1_data, Wavelength_bins, Background_data = Prepare_data(Plante_1_folder, Background_folder)
+Plante_2_data, _, _ = Prepare_data(Plante_2_folder, Background_folder)
 
 plt.figure(figsize=(10, 5))
+
 for i, data in enumerate(Plante_1_data):
     if i == 0:
         plt.plot(Wavelength_bins, data, label='Scindapsus aureus', color = 'blue', linewidth=0.8)
     plt.plot(Wavelength_bins, data, color = 'blue', linewidth=0.8)
-    plt.xlabel("Wavelength (nm)")
-    plt.ylabel("Intensity")
-    plt.title("Spectral Data Analysis by Plant Type")
-    plt.grid()
-# plt.show()
 for i, data in enumerate(Plante_2_data):
     if i == 0:
-        plt.plot(Wavelength_bins, data, label='Kalanchoe daigremontianum', color = 'red', linewidth=0.8)
-    plt.plot(Wavelength_bins, data, color = 'red', linewidth=0.8)
-    plt.xlabel("Wavelength (nm)")
-    plt.ylabel("Intensity")
-    plt.title("Spectral Data Analysis by Plant Type")
-    plt.grid()
+        plt.plot(Wavelength_bins, data, label='Kalanchoe daigremontianum', color = 'green', linewidth=0.8)
+    plt.plot(Wavelength_bins, data, color = 'green', linewidth=0.8)
+
+# plt.plot(Wavelength_bins, Background_data, label='Source', color = 'red', linewidth=0.8)
+plt.title("Analyse des données spectrales par type de plante")
+plt.grid()
+plt.xlabel("Longueur d'onde (nm)")
+plt.ylabel("Intensité")
+plt.legend()
 plt.show()
 
 
