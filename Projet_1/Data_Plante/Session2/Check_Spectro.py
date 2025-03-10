@@ -86,16 +86,16 @@ Plante_2_data, _, _ = Prepare_data(Plante_2_folder, Background_folder)
 
 plt.figure(figsize=(10, 5))
 
-for i, data in enumerate(Plante_1_data):
-    if i == 0:
-        plt.plot(Wavelength_bins, data, label='Scindapsus aureus', color = 'blue', linewidth=0.8)
-    plt.plot(Wavelength_bins, data, color = 'blue', linewidth=0.8)
-for i, data in enumerate(Plante_2_data):
-    if i == 0:
-        plt.plot(Wavelength_bins, data, label='Kalanchoe daigremontianum', color = 'green', linewidth=0.8)
-    plt.plot(Wavelength_bins, data, color = 'green', linewidth=0.8)
+# for i, data in enumerate(Plante_1_data):
+#     if i == 0:
+#         plt.plot(Wavelength_bins, data, label='Scindapsus aureus', color = 'blue', linewidth=0.8)
+#     plt.plot(Wavelength_bins, data, color = 'blue', linewidth=0.8)
+# for i, data in enumerate(Plante_2_data):
+#     if i == 0:
+#         plt.plot(Wavelength_bins, data, label='Kalanchoe daigremontianum', color = 'green', linewidth=0.8)
+#     plt.plot(Wavelength_bins, data, color = 'green', linewidth=0.8)
 
-# plt.plot(Wavelength_bins, Background_data, label='Source', color = 'red', linewidth=0.8)
+plt.plot(Wavelength_bins, Background_data, label='Source', color = 'red', linewidth=0.8)
 plt.title("Analyse des données spectrales par type de plante")
 plt.grid()
 plt.xlabel("Longueur d'onde (nm)")
