@@ -45,22 +45,22 @@ def plot_wav_waveform(wav_file):
 
 My_simu = Microphone_Laser(sampling_rate_detector=5e6) # Base sampling_rate_detector = 5e6
 
-# # Get sound from .wav
-# wav_file = choose_wav_file()
-# time_raw, samples = plot_wav_waveform(wav_file)
-# # crop = 0.005 # sec
-# # samples = samples[int(len(time_raw)/2-crop/2/time_raw[1]):int(len(time_raw)/2+crop/2/time_raw[1])] 
-# # time_raw = time_raw[int(len(time_raw)/2-crop/2/time_raw[1]):int(len(time_raw)/2+crop/2/time_raw[1])]
-# Sound_data = samples/np.max(abs(samples))*18.4*My_simu.lambda_
+# Get sound from .wav
+wav_file = choose_wav_file()
+time_raw, samples = plot_wav_waveform(wav_file)
+# crop = 0.005 # sec
+# samples = samples[int(len(time_raw)/2-crop/2/time_raw[1]):int(len(time_raw)/2+crop/2/time_raw[1])] 
+# time_raw = time_raw[int(len(time_raw)/2-crop/2/time_raw[1]):int(len(time_raw)/2+crop/2/time_raw[1])]
+Sound_data = samples/np.max(abs(samples))*18.4*My_simu.lambda_
 
-# Get sound from wave function
-F_son = 300 # Freq du son en Hz
-duration = 5/F_son # Dure de la simulation (s)
-# duration = 1 # Dure de la simulation (s)
-n = 300 # facteur amplitude des oscillation de la mambrane vs lamda laser (n=0.5@35lambda pour 3000Hz)(n=15@300lambda pour 300Hz)
-A_son = n*My_simu.lambda_ # Amplitude max des oscillation de la membrane en metre
-time_raw = np.linspace(0, duration, int(np.pi/np.e*duration*7.0531e7)) # Nombre random pour pas avoir de phenomene fucke de pas multiple de frequence de fonctions
-Sound_data = A_son* np.sin(2 * np.pi * F_son * time_raw)
+# # Get sound from wave function
+# F_son = 300 # Freq du son en Hz
+# duration = 5/F_son # Dure de la simulation (s)
+# # duration = 1 # Dure de la simulation (s)
+# n = 300 # facteur amplitude des oscillation de la mambrane vs lamda laser (n=0.5@35lambda pour 3000Hz)(n=15@300lambda pour 300Hz)
+# A_son = n*My_simu.lambda_ # Amplitude max des oscillation de la membrane en metre
+# time_raw = np.linspace(0, duration, int(np.pi/np.e*duration*7.0531e7)) # Nombre random pour pas avoir de phenomene fucke de pas multiple de frequence de fonctions
+# Sound_data = A_son* np.sin(2 * np.pi * F_son * time_raw)
 
 # Simulate sound a travers le setup
 start = time.time()
@@ -80,12 +80,12 @@ play_sound(t_sampled, signal/np.max(signal))
 
 
 
-plt.figure(figsize=(10, 5))
-plt.plot(time_raw, Sound_data/np.max(Sound_data), label="Raw Audio Signal (normalized)")
-plt.plot(t_sampled, signal/np.max(signal), label='Sound extracted from simulation (normalized)')
-# plt.plot(time_raw, membrane_displacement/np.max(membrane_displacement), label='membrane Displacement (normalized)')
-plt.xlabel('Temps (s)')
-plt.ylabel('Intensité (a.u.)')
-plt.grid(True)
-plt.legend()
-plt.show()
+# plt.figure(figsize=(10, 5))
+# plt.plot(time_raw, Sound_data/np.max(Sound_data), label="Raw Audio Signal (normalized)")
+# plt.plot(t_sampled, signal/np.max(signal), label='Sound extracted from simulation (normalized)')
+# # plt.plot(time_raw, membrane_displacement/np.max(membrane_displacement), label='membrane Displacement (normalized)')
+# plt.xlabel('Temps (s)')
+# plt.ylabel('Intensité (a.u.)')
+# plt.grid(True)
+# plt.legend()
+# plt.show()

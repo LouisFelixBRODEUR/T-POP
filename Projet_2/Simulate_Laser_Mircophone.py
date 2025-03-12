@@ -69,7 +69,7 @@ class Microphone_Laser:
         signal = self.convolve(signal, 5) # 5e-5 / t_sampled[1] donne la periode min du hearing range humain
         signal = np.diff(signal)
         signal = abs(signal)
-        signal[::2] *= -1
+        # signal[::2] *= -1
         return signal
     
     def convolve(self, signal, size=5):
