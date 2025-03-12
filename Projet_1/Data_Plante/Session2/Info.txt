@@ -1,5 +1,5 @@
 Fibre:
-	-Part #: QP600-2-VIS-NIR
+	-Part #:
 	-Assembly #: OOS-009019-41
 Spectro:
 	-Oceqn Optics

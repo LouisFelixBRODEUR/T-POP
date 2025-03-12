@@ -127,7 +127,7 @@ def main():
     My_Simu = Microphone_Laser()
 
     F_son = 3000 # Freq du son en Hz
-    duration = 5000/F_son # Dure de la simulation (s)
+    duration = 5/F_son # Dure de la simulation (s)
     # duration = 1 # Dure de la simulation (s)
     n =4.13 # facteur amplitude des oscillation de la mambrane vs lamda laser
     A_son = n*My_Simu.lambda_ # Amplitude max des oscillation de la membrane en metre
@@ -151,18 +151,18 @@ def main():
     signal = My_Simu.extract_sound_from_detector_response(I_avg)
     print(f'Sound extracted from detector response in {time.time()-start} sec')
 
-    # plt.figure(figsize=(10, 5))
-    # # plt.plot(time_raw, I_raw, label='Intensité théorique', alpha=0.5)
-    # # plt.scatter(t_sampled, I_avg, color='blue', label='Intensité moyenne (réponse du détecteur)', marker='x')
-    # # plt.plot(t_sampled, Theorical_Intensity_at_Detecteur(t_sampled, 1, 1, A_son, F_son, ), label='Enveloppe')
-    # plt.plot(t_sampled[0:len(signal)], signal/np.max(np.abs(signal)), label='signal Extrait de la mesure')
-    # plt.plot(time_raw, Sound_data/np.max(np.abs(Sound_data)), label='Original signal')
-    # plt.xlabel('Temps (s)')
-    # plt.ylabel('Intensité (a.u.)')
-    # plt.title("Approximation de la mesure d'interférométrie au detecteur")
-    # plt.grid(True)
-    # plt.legend()
-    # plt.show()
+    plt.figure(figsize=(10, 5))
+    plt.plot(time_raw, I_raw, label='Intensité théorique', alpha=0.5)
+    plt.scatter(t_sampled, I_avg, color='blue', label='Intensité moyenne (réponse du détecteur)', marker='x')
+    # plt.plot(t_sampled, Theorical_Intensity_at_Detecteur(t_sampled, 1, 1, A_son, F_son, ), label='Enveloppe')
+    plt.plot(t_sampled[0:len(signal)], signal/np.max(np.abs(signal)), label='signal Extrait de la mesure')
+    plt.plot(time_raw, Sound_data/np.max(np.abs(Sound_data)), label='Original signal')
+    plt.xlabel('Temps (s)')
+    plt.ylabel('Intensité (a.u.)')
+    plt.title("Approximation de la mesure d'interférométrie au detecteur")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
 if __name__ == "__main__":
     main()

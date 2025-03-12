@@ -1,0 +1,7 @@
+Fibre:
+	-Part #:
+	-Assembly #: COP 246125D
+Spectro:
+	-Oceqn Optics
+	-Modele: USB4000
+	-SN: USB4F10415 ou 211-00000-CUS jsp
