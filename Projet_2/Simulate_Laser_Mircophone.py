@@ -17,7 +17,7 @@ class Microphone_Laser:
 
     def simulate_raw_intensity(self, time_data, displacement_data):
         # Simulate Intensity from interference
-        E_raw = np.sin(2 * np.pi * self.light_speed * time_data / self.lambda_) + np.sin(2 * np.pi * self.light_speed / self.lambda_ * time_data +  2 * np.pi / self.lambda_ * displacement_data)
+        E_raw = np.sin(2 * np.pi * self.light_speed * time_data / self.lambda_ + self.light_speed/ self.lambda_) + np.sin(2 * np.pi * self.light_speed / self.lambda_ * time_data +  2 * np.pi / self.lambda_ * displacement_data)
         I_raw = E_raw**2
         return time_data, I_raw
     
