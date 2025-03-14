@@ -78,22 +78,53 @@ def Prepare_data(Plante_folder, Background_folder):
 
     return Spectro_data, Wavelength_bins, Background_data
 
-Plante_1_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Kalanchoe_daigremontianum_30ms\\"
-Plante_2_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Scindapsus_aureus_20ms\\"
+Plante_1_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Scindapsus_aureus_20ms\\"
+Plante_2_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Kalanchoe_daigremontianum_30ms\\"
+Plante_3_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Dieffenbachia_seguine_20ms\\"
+Plante_4_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Dracaena_fragrans_10ms\\"
+Plante_5_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Tradescantia_spathacea_top_20ms\\"
+Plante_6_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Tradescantia_spathacea_bot_25ms\\"
+
 Background_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Background_7ms_feuille_blanche\\"
 
 Plante_1_data, Wavelength_bins, Background_data = Prepare_data(Plante_1_folder, Background_folder)
 Plante_2_data, _, _ = Prepare_data(Plante_2_folder, Background_folder)
+Plante_3_data, _, _ = Prepare_data(Plante_3_folder, Background_folder)
+Plante_4_data, _, _ = Prepare_data(Plante_4_folder, Background_folder)
+Plante_5_data, _, _ = Prepare_data(Plante_5_folder, Background_folder)
+Plante_6_data, _, _ = Prepare_data(Plante_6_folder, Background_folder)
+
+Plants_data = [Plante_1_data, Plante_2_data, Plante_3_data, Plante_4_data, Plante_5_data, Plante_6_data]
+
+plant_names = [
+    'Scindapsus_aureus_20ms (Basic Plante)',
+    'Kalanchoe_daigremontianum_30ms (Bébé démembrés)',
+    'Dieffenbachia_seguine_20ms (Léopart)',
+    'Dracaena_fragrans_10ms (Verte-Jaune)',
+    'Tradescantia_spathacea_top_20ms (Côte Vert)',
+    'Tradescantia_spathacea_bot_25ms (Côte Rouge)'
+]
+
+plant_color = ['b', 'g', 'r', 'c', 'm', 'y']
 
 plt.figure(figsize=(10, 5))
-for i, data in enumerate(Plante_1_data):
-    if i == 0:
-        plt.plot(Wavelength_bins, data, label='Kalanchoe daigremontianum', color = 'green', linewidth=0.8)
-    plt.plot(Wavelength_bins, data, color = 'green', linewidth=0.8)
-for i, data in enumerate(Plante_2_data):
-    if i == 0:
-        plt.plot(Wavelength_bins, data, label='Scindapsus aureus', color = 'blue', linewidth=0.8, alpha = 0.3)
-    plt.plot(Wavelength_bins, data, color = 'blue', linewidth=0.8, alpha = 0.3)
+# for i, data in enumerate(Plante_1_data):
+#     if i == 0:
+#         plt.plot(Wavelength_bins, data, label='Kalanchoe daigremontianum', color = 'green', linewidth=0.8)
+#     plt.plot(Wavelength_bins, data, color = 'green', linewidth=0.8)
+# for i, data in enumerate(Plante_2_data):
+#     if i == 0:
+#         plt.plot(Wavelength_bins, data, label='Scindapsus aureus', color = 'blue', linewidth=0.8, alpha = 0.3)
+#     plt.plot(Wavelength_bins, data, color = 'blue', linewidth=0.8, alpha = 0.3)
+
+for j, data_plant in enumerate(Plants_data):
+    # for i, data in enumerate(data_plant):
+    #     if i == 0:
+    #         plt.plot(Wavelength_bins, data, label=plant_names[j], color = plant_color[j], linewidth=0.8, alpha = 1)
+    #     plt.plot(Wavelength_bins, data, color = plant_color[j], linewidth=0.8, alpha = 0.3)
+
+    data = np.mean(data_plant, axis=0)
+    plt.plot(Wavelength_bins, data, color = plant_color[j], label=plant_names[j])
 
 plt.plot(Wavelength_bins, Background_data/np.max(Background_data), label='Source', color = 'red', linewidth=0.8)
 plt.title("Analyse des données spectrales par type de plante")

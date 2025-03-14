@@ -12,128 +12,238 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import seaborn as sns
 import random
+import matplotlib.cm as cm
+from tkinter import filedialog
 
-model_name = 'model_test.pth'
 
-# ----------------------------------------------Load and Preprocess the Data--------------------------------------------------
-def get_wavelength_data(base_dir):
-    for file_name in os.listdir(base_dir):
-        if file_name.endswith(".txt"):  # Process only .txt files
-            file_path = os.path.join(base_dir, file_name)
-            with open(file_path, "r") as file:
-                lines = file.readlines()
+class PlantDataManager:
+    def __init__(self, data_folders, data_labels, Background_Folder):
+        self.data_folders = data_folders
+        self.data_label = data_labels
+        self.Background_Folder = Background_Folder
+        self.Background_data = self.get_intensity_data_from_folder(self.Background_Folder)
 
+    def get_wavelength_data(self, base_dir):
+        for file_name in os.listdir(base_dir):
+            if file_name.endswith(".txt"):  # Process only .txt files
+                file_path = os.path.join(base_dir, file_name)
+                with open(file_path, "r") as file:
+                    lines = file.readlines()
+
+                    # Find the starting point of spectral data
+                    for i, line in enumerate(lines):
+                        if ">>>>>Begin Spectral Data<<<<<" in line:
+                            data_start = i + 1
+                            break
+
+                    # Read spectral data and extract only wavelength values
+                    data = pd.read_csv(file_path, skiprows=data_start, delimiter="\t", names=["Wavelength", "Intensity"])
+                    return np.array(data["Wavelength"].tolist())  # Return only the wavelength column as a list
+
+    def moving_average(self, data, window_size=5):
+        kernel = np.ones(window_size) / window_size  # Create a uniform kernel
+        return np.convolve(data, kernel, mode='same')  # Apply convolution
+
+    def Prepare_data(self, Plante_folder):
+        BG_data = self.Background_data
+        BG_data = np.mean(BG_data, axis=0)
+        Wavelength_bins = self.get_wavelength_data(self.Background_Folder)
+
+        Spectro_data = self.get_intensity_data_from_folder(Plante_folder)
+        Spectro_data = [arr for arr in Spectro_data if np.all(np.max(arr) <= 63500)] # Remove saturated
+
+        # range de nanometre a analyser
+        # Cap_low, Cap_high = 300, 840
+        # Cap_low, Cap_high = 645, 735 
+        Cap_low, Cap_high = 420, 800
+        low_index = np.argmin(np.abs(Wavelength_bins - Cap_low))
+        high_index = np.argmin(np.abs(Wavelength_bins - Cap_high))
+
+        BG_data = self.moving_average(BG_data, window_size=5) # Smoothen Background
+        # BG_data = BG_data/np.max(BG_data) # Normalize Background
+        Spectro_data = [arr/BG_data for arr in Spectro_data] # Divide Data by Background
+
+        Spectro_data = [self.moving_average(arr, window_size=30) for arr in Spectro_data] # Smoothen Spectral Data
+        
+        Spectro_data = [arr[low_index:high_index] for arr in Spectro_data]
+        self.Wavelength_bins_for_plot = Wavelength_bins[low_index:high_index]
+        self.Background_data_for_plot = BG_data[low_index:high_index]
+
+        Spectro_data = [arr / np.max(arr) for arr in Spectro_data] # Normalize Spectral Data
+        # Spectro_data -= BG_data
+
+        return Spectro_data
+
+    def get_intensity_data_from_folder(self, base_dir):
+        intensity_data = []
+        for file_name in os.listdir(base_dir):
+            if file_name.endswith(".txt"):  # Process only .txt files
+                file_path = os.path.join(base_dir, file_name)
+
+                with open(file_path, "r") as file:
+                    lines = file.readlines()
+                
                 # Find the starting point of spectral data
                 for i, line in enumerate(lines):
                     if ">>>>>Begin Spectral Data<<<<<" in line:
                         data_start = i + 1
                         break
 
-                # Read spectral data and extract only wavelength values
+                # Read spectral data and extract only intensity values
                 data = pd.read_csv(file_path, skiprows=data_start, delimiter="\t", names=["Wavelength", "Intensity"])
-                return np.array(data["Wavelength"].tolist())  # Return only the wavelength column as a list
+                intensity_data.append(data["Intensity"].tolist())  # Append only the intensity column as a list
+        return intensity_data
 
-def moving_average(data, window_size=5):
-    kernel = np.ones(window_size) / window_size  # Create a uniform kernel
-    return np.convolve(data, kernel, mode='same')  # Apply convolution
+    def load_data(self, plante_folder_paths):
+        data = []
+        labels = []
+        for i, path in enumerate(plante_folder_paths):
+            data.extend(self.Prepare_data(path))
+            plant_name = i
+            for j in range(len(data)-len(labels)):
+                labels.append(plant_name)
+        return np.array(data), np.array(labels)
 
-def Prepare_data(Plante_folder, Background_folder):
-    Background_data = get_intensity_data_from_folder(Background_folder)
-    Background_data = np.mean(Background_data, axis=0)
-    Wavelength_bins = get_wavelength_data(Background_folder)
+    def train_model(self, num_epochs = 100):
+        train_images, train_labels = self.load_data(self.data_folders) # Train image : 60 000*[784*[]] Train Label : 60 000*[]
 
-    Spectro_data = get_intensity_data_from_folder(Plante_folder)
-    Spectro_data = [arr for arr in Spectro_data if np.all(np.max(arr) <= 63500)] # Remove saturated
+        # Split train en pour garder un test set pour eviter le overfitting (test_size=0.1=>10%) (random_state=seed for reproductibility)
+        X_train, X_val, y_train, y_val = train_test_split(train_images, train_labels, test_size=0.1, random_state=666)
 
-    # range de nanometre a analyser
-    # Cap_low, Cap_high = 0, 1000
-    # Cap_low, Cap_high = 420, 670
-    Cap_low, Cap_high = 420, 800
-    low_index = np.argmin(np.abs(Wavelength_bins - Cap_low))
-    high_index = np.argmin(np.abs(Wavelength_bins - Cap_high))
+        # initialisation des dataset pytorch
+        train_dataset = PlantDataset(X_train, y_train)
+        val_dataset = PlantDataset(X_val, y_val)
 
-    Background_data = moving_average(Background_data, window_size=5) # Smoothen Background
-    # Background_data = Background_data/np.max(Background_data) # Normalize Background
-    Spectro_data = [arr/Background_data for arr in Spectro_data] # Divide Data by Background
+        train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+        self.val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
 
-    Spectro_data = [moving_average(arr, window_size=30) for arr in Spectro_data] # Smoothen Spectral Data
-    
-    Spectro_data = [arr[low_index:high_index] for arr in Spectro_data]
-    Wavelength_bins = Wavelength_bins[low_index:high_index]
-    Background_data = Background_data[low_index:high_index]
+        # model = SimpleNN(first_layer_size = len(train_images[0]))
+        # model = SimpleNN_5layers(first_layer_size = len(train_images[0]))
+        self.model = ModulableNN(first_layer_size = len(train_images[0]), num_hidden_layers=5, neurons_per_layer=20, output_size=6)
 
-    Spectro_data = [arr / np.max(arr) for arr in Spectro_data] # Normalize Spectral Data
-    # Spectro_data -= Background_data
-
-    return Spectro_data
-
-def get_intensity_data_from_folder(base_dir):
-    intensity_data = []
-    for file_name in os.listdir(base_dir):
-        if file_name.endswith(".txt"):  # Process only .txt files
-            file_path = os.path.join(base_dir, file_name)
-
-            with open(file_path, "r") as file:
-                lines = file.readlines()
+        criterion = nn.CrossEntropyLoss()  # Fonction de perte (Cross-Entropy Loss) good pour job de classification (0-9 digit out)
+        optimizer = optim.Adam(self.model.parameters(), lr=0.001) 
+        '''
+        # model.parameters sont les weight a optimizer & lr(learning rate) est la grosseur des pas dptimizzation
+        # Adaptive Moment Estimation (ADAM) => lr modulable avec le momentum de lamelioration du model
+        '''
+        # Nombre d'iteration de training sur le dataset
+        for epoch in range(num_epochs):
+            self.model.train() 
+            running_loss = 0.0 # total returns de la fonction de perte
+            correct_predictions = 0 # total corrections faites au poids
+            total_samples = 0
             
-            # Find the starting point of spectral data
-            for i, line in enumerate(lines):
-                if ">>>>>Begin Spectral Data<<<<<" in line:
-                    data_start = i + 1
-                    break
+            for images, labels in train_loader:
+                # Test et quantification de la fonction de perte
+                outputs = self.model(images)
+                loss = criterion(outputs, labels)
+                
+                # Backpropagation et optimization
+                optimizer.zero_grad() # RESET from last iteration
+                loss.backward()  # Calcul du gradient via backpropagation
+                optimizer.step()  # mise a jour des poids
+                
+                # Calculs pour stats...
+                running_loss += loss.item() * images.size(0)
+                _, predicted = torch.max(outputs, 1)
+                correct_predictions += (predicted == labels).sum().item()
+                total_samples += labels.size(0)
+            
+            epoch_loss = running_loss / total_samples
+            accuracy = correct_predictions / total_samples * 100
+            print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Accuracy: {accuracy:.2f}%")
 
-            # Read spectral data and extract only intensity values
-            data = pd.read_csv(file_path, skiprows=data_start, delimiter="\t", names=["Wavelength", "Intensity"])
-            intensity_data.append(data["Intensity"].tolist())  # Append only the intensity column as a list
-    return intensity_data
+    def save_model(self, model_name = 'model_test.pth'):
+        torch.save(self.model.state_dict(), os.path.dirname(os.path.abspath(__file__))+ '\\' + model_name)
 
-def load_data(plante_folder_paths):
-    data = []
-    labels = []
-    Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Background_7ms_feuille_blanche\\"
-    for i, path in enumerate(plante_folder_paths):
-        # data.extend(get_intensity_data_from_folder(path))
-        data.extend(Prepare_data(path, Background_Folder))
-        # plant_name = path.split('\\')[-2]
-        plant_name = i
-        for j in range(len(data)-len(labels)):
-            labels.append(plant_name)
-    return np.array(data), np.array(labels)
-
-# Conversion du data en pytorch dataset (tensor)
-class PlantDataset(Dataset):
-    def __init__(self, images, labels):
-        self.images = torch.tensor(images)
-        self.labels = torch.tensor(labels)
+    def load_model(self):
+        file_path = filedialog.askopenfilename(title="Select Model File", filetypes=[("PyTorch Model", "*.pt;*.pth")])
         
-    def __len__(self):
-        return len(self.images)
+        if file_path:  # Ensure a file was selected
+            self.model.load_state_dict(torch.load(file_path))  # Load the saved model
+            print(f"Model loaded from: {file_path}")
+        else:
+            print("No file selected. Model not loaded.")
+
+    def test_model(self):
+        self.model.eval()
+        correct_predictions = 0
+        total_samples = 0
+        with torch.no_grad():  # pas de grad car pas dajustement de poids
+            for images, labels in self.val_loader:
+                outputs = self.model(images)
+                _, predicted = torch.max(outputs, 1) # valeur de reference
+                correct_predictions += (predicted == labels).sum().item()  # nombre de prediction ok
+                total_samples += labels.size(0)
+        accuracy = correct_predictions / total_samples * 100
+        print(f"Final Test Accuracy: {accuracy:.2f}%")
     
-    def __getitem__(self, idx):
-        return self.images[idx], self.labels[idx]
+    def show_data(self, graph_type='all', show_source=True):
+        Plants_data = []
+        for folder in self.data_folders:
+            Plants_data.append(self.Prepare_data(folder))
+        # plant_color = ['b', 'g', 'r', 'c', 'm', 'y']
 
-# Load train & test data
-# test_csv_path = os.path.dirname(os.path.abspath(__file__))+"\\mnist_test.csv"
-# train_csv_path = os.path.dirname(os.path.abspath(__file__))+"\\mnist_train.csv" # PATH
-Plante_1_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Scindapsus_aureus_20ms\\"
-Plante_2_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Kalanchoe_daigremontianum_30ms\\"
-Plante_Folders = [Plante_1_folder, Plante_2_folder]
+        num_plants = len(Plants_data)
+        cmap = plt.colormaps.get_cmap('tab10')  # Get the colormap object
 
-train_images, train_labels = load_data(Plante_Folders) # Train image : 60 000*[784*[]] Train Label : 60 000*[]
+        plt.figure(figsize=(12, 6))
+        for j, data_plant in enumerate(Plants_data):
+            color = cmap(j / max(1, num_plants - 1))  # Normalize j for proper color mapping
+            if graph_type == 'all':
+                for i, data in enumerate(data_plant):
+                    if i == 0:
+                        plt.plot(self.Wavelength_bins_for_plot, data, label=self.data_label[j], color=color, linewidth=0.8, alpha=1)
+                    plt.plot(self.Wavelength_bins_for_plot, data, color=color, linewidth=0.8, alpha=0.3)
+            if graph_type == 'mean':
+                data = np.mean(data_plant, axis=0)
+                plt.plot(self.Wavelength_bins_for_plot, data, color=color, label=self.data_label[j])
+        if show_source:
+            plt.plot(self.Wavelength_bins_for_plot, self.Background_data_for_plot/np.max(self.Background_data_for_plot), label='Source', color = 'red')
+        plt.title("Analyse des données spectrales par type de plante")
+        plt.grid()
+        plt.xlabel("Longueur d'onde (nm)")
+        plt.ylabel("Intensité")
+        plt.legend()
+        plt.show()
 
-# Split train en pour garder un test set pour eviter le overfitting (test_size=0.1=>10%) (random_state=seed for reproductibility)
-X_train, X_val, y_train, y_val = train_test_split(train_images, train_labels, test_size=0.1, random_state=666)
+    def show_data_with_weights(self, show_source=True):
+        if not hasattr(self, 'model'):
+            raise ValueError("Model is not trained yet. Please train the model first.")
 
-# initialisation des dataset pytorch
-train_dataset = PlantDataset(X_train, y_train)
-val_dataset = PlantDataset(X_val, y_val)
+        if not hasattr(self.model, 'layers') or not isinstance(self.model.layers[0], nn.Linear):
+            raise ValueError("Model does not have a recognizable first fully connected layer.")
 
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+        # Extract first layer weights (take the absolute sum over all neurons to see importance)
+        first_layer_weights = self.model.layers[0].weight.detach().cpu().numpy()
+        importance_per_wavelength = np.abs(first_layer_weights).sum(axis=0)  # Sum absolute weights across neurons
 
-# ----------------------------------------------Define the Neural Network Model--------------------------------------------------
-# fully connected neural network (FCN) pour plus facilement classser les images
-# Rectified Linear Unit (ReLU) en Fonction dactivation
+        # Normalize the weights for visualization
+        importance_per_wavelength /= np.max(importance_per_wavelength)
+
+        # Create figure
+        plt.figure(figsize=(12, 6))
+        
+        # Plot spectral data
+        for i, folder in enumerate(self.data_folders):
+            data = np.mean(self.Prepare_data(folder), axis=0)  # Averaged spectral data per plant
+            plt.plot(self.Wavelength_bins_for_plot, data, label=self.data_label[i], alpha=0.8)
+
+        # Fill under the weight importance curve
+        plt.fill_between(self.Wavelength_bins_for_plot, importance_per_wavelength, color='red', alpha=0.1, label="Importance des poids")
+
+        if show_source:
+            plt.plot(self.Wavelength_bins_for_plot, self.Background_data_for_plot/np.max(self.Background_data_for_plot), label='Source', color = 'black')
+
+        plt.xlabel("Longueur d'onde (nm)")
+        plt.ylabel("Intensité normalisée / importance des poids")
+        plt.title("Analyse des données spectrales par type de plante avec l'importance des poids du modèle entrainé")
+        plt.legend()
+        plt.grid()
+
+        plt.show()
+
 class SimpleNN(nn.Module):
     def __init__(self, first_layer_size = 3648):
         super(SimpleNN, self).__init__()
@@ -209,132 +319,45 @@ class ModulableNN(nn.Module):
         
         return x
 
-# # ----------------------------------------------Find best architechture using montecristo search--------------------------------------------------
-# def monte_carlo_search(train_loader, val_loader, input_size, output_size, num_trials=10):
-#     # Define the search space
-#     num_hidden_layers_range = range(1, 6)  # 1 to 5 hidden layers
-#     neurons_per_layer_range = range(10, 101, 10)  # 10 to 100 neurons per layer
-#     learning_rate_range = [0.001, 0.01, 0.1]  # Learning rates to try
+class PlantDataset(Dataset):
+    def __init__(self, images, labels):
+        self.images = torch.tensor(images)
+        self.labels = torch.tensor(labels)
+        
+    def __len__(self):
+        return len(self.images)
     
-#     best_accuracy = 0
-#     best_hyperparams = None
-#     best_model = None
+    def __getitem__(self, idx):
+        return self.images[idx], self.labels[idx]
     
-#     for trial in range(num_trials):
-#         # Randomly sample hyperparameters
-#         num_hidden_layers = random.choice(num_hidden_layers_range)
-#         neurons_per_layer = random.choice(neurons_per_layer_range)
-#         learning_rate = random.choice(learning_rate_range)
-        
-#         print(f"Trial {trial + 1}/{num_trials}: "
-#               f"Layers={num_hidden_layers}, Neurons={neurons_per_layer}, LR={learning_rate}")
-        
-#         # Initialize the model
-#         model = ModulableNN(first_layer_size = len(train_images[0]), num_hidden_layers=num_hidden_layers, neurons_per_layer=neurons_per_layer)
-        
-#         # Define loss function and optimizer
-#         criterion = nn.CrossEntropyLoss()
-#         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-        
-#         # Train the model
-#         num_epochs = 10  # Train for a few epochs for each trial
-#         for epoch in range(num_epochs):
-#             model.train()
-#             for images, labels in train_loader:
-#                 outputs = model(images)
-#                 loss = criterion(outputs, labels)
-                
-#                 optimizer.zero_grad()
-#                 loss.backward()
-#                 optimizer.step()
-        
-#         # Evaluate the model on the validation set
-#         model.eval()
-#         correct_predictions = 0
-#         total_samples = 0
-#         with torch.no_grad():
-#             for images, labels in val_loader:
-#                 outputs = model(images)
-#                 _, predicted = torch.max(outputs, 1)
-#                 correct_predictions += (predicted == labels).sum().item()
-#                 total_samples += labels.size(0)
-        
-#         accuracy = correct_predictions / total_samples * 100
-#         print(f"Validation Accuracy: {accuracy:.2f}%")
-        
-#         # Track the best model
-#         if accuracy > best_accuracy:
-#             best_accuracy = accuracy
-#             best_hyperparams = {
-#                 "num_hidden_layers": num_hidden_layers,
-#                 "neurons_per_layer": neurons_per_layer,
-#                 "learning_rate": learning_rate,
-#             }
-#             best_model = model
-    
-#     print(f"Best Hyperparameters: {best_hyperparams}")
-#     print(f"Best Validation Accuracy: {best_accuracy:.2f}%")
-    
-#     return best_hyperparams, best_model
-# ----------------------------------------------Train the Model--------------------------------------------------
-# model = SimpleNN(first_layer_size = len(train_images[0]))
-# model = SimpleNN_5layers(first_layer_size = len(train_images[0]))
-model = ModulableNN(first_layer_size = len(train_images[0]), num_hidden_layers=5, neurons_per_layer=20)
+def main():
+    # Load train & test data
+    Plante_1_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Scindapsus_aureus_20ms\\"
+    Plante_2_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Kalanchoe_daigremontianum_30ms\\"
+    Plante_3_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Dieffenbachia_seguine_20ms\\"
+    Plante_4_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Dracaena_fragrans_10ms\\"
+    Plante_5_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Tradescantia_spathacea_top_20ms\\"
+    Plante_6_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Tradescantia_spathacea_bot_25ms\\"
+    Plant_Folders = [Plante_1_folder, Plante_2_folder, Plante_3_folder, Plante_4_folder, Plante_5_folder, Plante_6_folder]
 
-criterion = nn.CrossEntropyLoss()  # Fonction de perte (Cross-Entropy Loss) good pour job de classification (0-9 digit out)
-optimizer = optim.Adam(model.parameters(), lr=0.001) 
-'''
-# model.parameters sont les weight a optimizer & lr(learning rate) est la grosseur des pas dptimizzation
-# Adaptive Moment Estimation (ADAM) => lr modulable avec le momentum de lamelioration du model
-'''
-# Nombre d'iteration de training sur le dataset
-num_epochs = 100
+    plant_names = [
+        'Scindapsus_aureus_20ms (Basic Plante)',
+        'Kalanchoe_daigremontianum_30ms (Bébé démembrés)',
+        'Dieffenbachia_seguine_20ms (Léopart)',
+        'Dracaena_fragrans_10ms (Verte-Jaune)',
+        'Tradescantia_spathacea_top_20ms (Côte Vert)',
+        'Tradescantia_spathacea_bot_25ms (Côte Rouge)'
+    ]
 
-for epoch in range(num_epochs):
-    model.train() 
-    running_loss = 0.0 # total returns de la fonction de perte
-    correct_predictions = 0 # total corrections faites au poids
-    total_samples = 0
-    
-    for images, labels in train_loader:
-        # Test et quantification de la fonction de perte
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        
-        # Backpropagation et optimization
-        optimizer.zero_grad() # RESET from last iteration
-        loss.backward()  # Calcul du gradient via backpropagation
-        optimizer.step()  # mise a jour des poids
-        
-        # Calculs pour stats...
-        running_loss += loss.item() * images.size(0)
-        _, predicted = torch.max(outputs, 1)
-        correct_predictions += (predicted == labels).sum().item()
-        total_samples += labels.size(0)
-    
-    epoch_loss = running_loss / total_samples
-    accuracy = correct_predictions / total_samples * 100
-    
-    print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Accuracy: {accuracy:.2f}%")
+    Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Background_7ms_feuille_blanche\\"
 
-# ----------------------------------------------Save the Trained Model--------------------------------------------------
-# torch.save(model.state_dict(), os.path.dirname(os.path.abspath(__file__))+ '\\' + model_name)
+    MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
 
-# ----------------------------------------------Test the Model--------------------------------------------------
-# model.load_state_dict(torch.load(os.path.dirname(os.path.abspath(__file__))+ '\\' + model_name)) # Load the saved model
-model.eval()
-correct_predictions = 0
-total_samples = 0
-with torch.no_grad():  # pas de grad car pas dajustement de poids
-    for images, labels in val_loader:
-        outputs = model(images)
-        _, predicted = torch.max(outputs, 1) # valeur de reference
-        correct_predictions += (predicted == labels).sum().item()  # nombre de prediction ok
-        total_samples += labels.size(0)
-accuracy = correct_predictions / total_samples * 100
-print(f"Test Accuracy: {accuracy:.2f}%")
+    MyDataManager.train_model()
+    MyDataManager.test_model()
 
-# ----------------------------------------------Display Model--------------------------------------------------
-# from torchsummary import summary
-# model = SimpleNN(first_layer_size=len(train_images[0]))
-# summary(model, input_size=(len(train_images[0]),))
+    # MyDataManager.show_data(graph_type='mean', show_source=True)
+    MyDataManager.show_data_with_weights()
+
+if __name__ == "__main__":
+    main()
