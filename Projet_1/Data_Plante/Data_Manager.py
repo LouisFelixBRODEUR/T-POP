@@ -122,11 +122,7 @@ class PlantDataManager:
         train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
         self.val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
 
-        # model = SimpleNN(first_layer_size = len(train_images[0]))
-        # model = SimpleNN_5layers(first_layer_size = len(train_images[0]))
         self.model = ModulableNN(first_layer_size = len(train_images[0]), num_hidden_layers=5, neurons_per_layer=20, output_size=self.plant_number)
-        # self.model = ModulableNN_Dropout(first_layer_size = len(train_images[0]), num_hidden_layers=5, neurons_per_layer=20, output_size=self.plant_number, dropout_rate=0.05)
-        # self.model = ModulableNN_AdaptiveDropout(first_layer_size = len(train_images[0]), num_hidden_layers=5, neurons_per_layer=20, output_size=self.plant_number, initial_dropout=0.3, final_dropout=0, total_epochs=num_epochs)
 
         criterion = nn.CrossEntropyLoss()  # Fonction de perte (Cross-Entropy Loss) good pour job de classification (0-9 digit out)
         optimizer = optim.Adam(self.model.parameters(), lr=0.001) 
@@ -137,10 +133,6 @@ class PlantDataManager:
         # Nombre d'iteration de training sur le dataset
         for epoch in range(num_epochs):
             self.model.train()
-
-            # # ***
-            # self.model.update_dropout(epoch)
-            # # ***
 
             running_loss = 0.0 # total returns de la fonction de perte
             correct_predictions = 0 # total corrections faites au poids
@@ -195,7 +187,6 @@ class PlantDataManager:
         Plants_data = []
         for folder in self.data_folders:
             Plants_data.append(self.Prepare_data(folder))
-        # plant_color = ['b', 'g', 'r', 'c', 'm', 'y']
 
         num_plants = len(Plants_data)
         cmap = plt.colormaps.get_cmap('tab10')  # Get the colormap object
@@ -255,46 +246,6 @@ class PlantDataManager:
         plt.grid()
 
         plt.show()
-
-class SimpleNN(nn.Module):
-    def __init__(self, first_layer_size = 3648):
-        super(SimpleNN, self).__init__()
-        self.first_layer_size = first_layer_size
-        self.fc1 = nn.Linear(first_layer_size, 128)  # input layer
-        self.fc2 = nn.Linear(128, 64)  # deuxieme layer
-        self.fc3 = nn.Linear(64, 2)  # output layer (2 out pour 2 plantes)
-        self.relu = nn.ReLU()  # fonction dactivation
-    # implementation des layers
-    def forward(self, x):
-        x = x.to(torch.float32)
-        x = x.view(-1, self.first_layer_size)  # linput dun FCN doit etre un vecteur 
-        x = self.relu(self.fc1(x))  # input layer 
-        x = self.relu(self.fc2(x))  # deuxieme layer
-        x = self.fc3(x)  # output layer
-        return x
-    
-class SimpleNN_5layers(nn.Module):
-    def __init__(self, first_layer_size=3648):
-        super(SimpleNN_5layers, self).__init__()
-        self.first_layer_size = first_layer_size
-        self.fc1 = nn.Linear(first_layer_size, 20)  #input  hidden layer 1
-        self.fc2 = nn.Linear(20, 20) # hidden layer 2
-        self.fc3 = nn.Linear(20, 20) # hidden layer 3
-        self.fc4 = nn.Linear(20, 20) # hidden layer 4
-        self.fc5 = nn.Linear(20, 20) # hidden layer 5
-        self.fc6 = nn.Linear(20, 2)  # Output
-        self.relu = nn.ReLU()  # function Activation
-
-    def forward(self, x):
-        x = x.to(torch.float32)
-        x = x.view(-1, self.first_layer_size)
-        x = self.relu(self.fc1(x))  # hidden layer 1
-        x = self.relu(self.fc2(x))  # hidden layer 2
-        x = self.relu(self.fc3(x))  # hidden layer 3
-        x = self.relu(self.fc4(x))  # hidden layer 4
-        x = self.relu(self.fc5(x))  # hidden layer 5
-        x = self.fc6(x)     
-        return x
     
 class ModulableNN(nn.Module):
     def __init__(self, first_layer_size=3648, num_hidden_layers=5, neurons_per_layer=20, output_size=2):
@@ -325,102 +276,7 @@ class ModulableNN(nn.Module):
         for layer in self.layers:
             x = layer(x)
         return x
-    
-class ModulableNN_Dropout(nn.Module):
-    def __init__(self, first_layer_size=3648, num_hidden_layers=5, neurons_per_layer=20, output_size=2, dropout_rate=0.1):
-        super(ModulableNN_Dropout, self).__init__()
-
-        self.input_size = first_layer_size
-        self.num_hidden_layers = num_hidden_layers
-        self.neurons_per_layer = neurons_per_layer
-        self.output_size = output_size
-        self.dropout_rate = dropout_rate  # Set dropout as a parameter for flexibility
-
-        self.layers = nn.ModuleList()
-
-        # Input layer
-        self.layers.append(nn.Linear(first_layer_size, neurons_per_layer))
-        self.layers.append(nn.ReLU())
-        self.layers.append(nn.Dropout(p=self.dropout_rate))  # Dropout with lower rate
-
-        # Hidden layers
-        for _ in range(num_hidden_layers - 1):
-            self.layers.append(nn.Linear(neurons_per_layer, neurons_per_layer))
-            self.layers.append(nn.ReLU())
-            self.layers.append(nn.Dropout(p=self.dropout_rate))  # Lower dropout rate
-
-        # Output layer (No dropout in the output layer)
-        self.layers.append(nn.Linear(neurons_per_layer, output_size))
-
-    def forward(self, x):
-        x = x.to(torch.float32)
-        x = x.view(-1, self.input_size)
-
-        for layer in self.layers:
-            x = layer(x)  # Forward pass through all layers
-
-        return x
-    
-class AdaptiveDropout(nn.Module):
-    def __init__(self, initial_p=0.3, final_p=0.05, total_epochs=100):
-        super(AdaptiveDropout, self).__init__()
-        self.initial_p = initial_p
-        self.final_p = final_p
-        self.total_epochs = total_epochs
-        self.current_epoch = 0  # Start at epoch 0
-        self.dropout = nn.Dropout(p=self.initial_p)
-
-    def forward(self, x):
-        return self.dropout(x)
-
-    def update_dropout_rate(self, epoch):
-        """Update dropout probability based on epoch progress."""
-        self.current_epoch = epoch
-        new_p = self.final_p + (self.initial_p - self.final_p) * (1 - epoch / self.total_epochs)
-        self.dropout.p = new_p  # Adjust dropout rate dynamically
-
-class ModulableNN_AdaptiveDropout(nn.Module):
-    def __init__(self, first_layer_size=3648, num_hidden_layers=5, neurons_per_layer=20, output_size=2, initial_dropout=0.3, final_dropout=0.05, total_epochs=100):
-        super(ModulableNN_AdaptiveDropout, self).__init__()
-
-        self.input_size = first_layer_size
-        self.num_hidden_layers = num_hidden_layers
-        self.neurons_per_layer = neurons_per_layer
-        self.output_size = output_size
-        self.total_epochs = total_epochs  # Store total training epochs
-
-        self.layers = nn.ModuleList()
-
-        # Input layer
-        self.layers.append(nn.Linear(first_layer_size, neurons_per_layer))
-        self.layers.append(nn.ReLU())
-        self.layers.append(AdaptiveDropout(initial_p=initial_dropout, final_p=final_dropout, total_epochs=total_epochs))
-
-        # Hidden layers
-        for _ in range(num_hidden_layers - 1):
-            self.layers.append(nn.Linear(neurons_per_layer, neurons_per_layer))
-            self.layers.append(nn.ReLU())
-            self.layers.append(AdaptiveDropout(initial_p=initial_dropout, final_p=final_dropout, total_epochs=total_epochs))
-
-        # Output layer (No dropout in the output layer)
-        self.layers.append(nn.Linear(neurons_per_layer, output_size))
-
-    def forward(self, x):
-        x = x.to(torch.float32)
-        x = x.view(-1, self.input_size)
-
-        for layer in self.layers:
-            x = layer(x)  # Forward pass
-
-        return x
-
-    def update_dropout(self, epoch):
-        """Call this method at each epoch to update dropout probability."""
-        for layer in self.layers:
-            if isinstance(layer, AdaptiveDropout):
-                layer.update_dropout_rate(epoch)
-
-    
+        
 class PlantDataset(Dataset):
     def __init__(self, images, labels):
         self.images = torch.tensor(images)
