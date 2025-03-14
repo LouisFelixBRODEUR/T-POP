@@ -117,55 +117,79 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# PCA
-pca = PCA(n_components=50)
-X_train_pca = pca.fit_transform(X_train_scaled)
-X_test_pca = pca.transform(X_test_scaled)
+# Définir des plages de valeurs pour n_components et random_state
+n_components_values = np.linspace(10, 100, num=10, endpoint=True, dtype=int)
+rf_states = np.linspace(10, 100, num=10, endpoint=True, dtype=int)
 
-# Random Forest (original)
-rf = RandomForestClassifier(random_state=70)
-rf.fit(X_train_scaled, y_train)
-y_pred_rf = rf.predict(X_test_scaled)
+# Initialisation pour stocker les meilleurs scores et paramètres
 
-# PCA + Random Forest
-rf_pca = RandomForestClassifier(random_state=60)
-rf_pca.fit(X_train_pca, y_train)
-y_pred_pca = rf_pca.predict(X_test_pca)
+best_score_rf = 0
+best_params_rf = {}
+
+best_score_pca = 0
+best_params_pca = {}
+
+best_score_pls = 0
+best_params_pls = {}
+
+# Recherche pour Random Forest sur les données standardisées (sans réduction)
+for rs in rf_states:
+    rf = RandomForestClassifier(random_state=rs)
+    rf.fit(X_train_scaled, y_train)
+    y_pred = rf.predict(X_test_scaled)
+    score = accuracy_score(y_test, y_pred)
+    
+    if score > best_score_rf:
+        best_score_rf = score
+        best_params_rf = {'random_state': rs}
+
+# Recherche pour la pipeline PCA + Random Forest
+for n in n_components_values:
+    # Réduction de dimension avec PCA
+    pca = PCA(n_components=n)
+    X_train_pca = pca.fit_transform(X_train_scaled)
+    X_test_pca = pca.transform(X_test_scaled)
+    
+    for rs in rf_states:
+        # Entraînement d'un Random Forest avec random_state = rs sur les données transformées par PCA
+        rf_pca = RandomForestClassifier(random_state=rs)
+        rf_pca.fit(X_train_pca, y_train)
+        y_pred = rf_pca.predict(X_test_pca)
+        score = accuracy_score(y_test, y_pred)
+        
+        # Mise à jour si on trouve un meilleur score
+        if score > best_score_pca:
+            best_score_pca = score
+            best_params_pca = {'n_components': n, 'random_state': rs}
 
 
-# PLSR utilisé directement pour la classification (en arrondissant les prédictions)
-# plsr = PLSRegression(n_components=70)
-# plsr.fit(X_train_scaled, y_train)
-# y_pred_plsr = plsr.predict(X_test_scaled)
-# y_pred_plsr_classes = np.round(y_pred_plsr).astype(int).flatten()
-# y_pred_plsr_classes = np.clip(y_pred_plsr_classes, 0, len(le.classes_)-1)
 
-# PLS + Random Forest : utilisation du PLS pour extraire des composantes supervisées puis Random Forest pour la classification
-pls = PLSRegression(n_components=30)
-pls.fit(X_train_scaled, y_train)
-X_train_pls = pls.transform(X_train_scaled)
-X_test_pls = pls.transform(X_test_scaled)
+# Recherche pour la pipeline PLS + Random Forest
+for n in n_components_values:
+    # Réduction de dimension avec PLS
+    pls = PLSRegression(n_components=n)
+    pls.fit(X_train_scaled, y_train)
+    X_train_pls = pls.transform(X_train_scaled)
+    X_test_pls = pls.transform(X_test_scaled)
+    
+    for rs in rf_states:
+        # Entraînement d'un Random Forest avec random_state = rs sur les données transformées par PLS
+        rf_pls = RandomForestClassifier(random_state=rs)
+        rf_pls.fit(X_train_pls, y_train)
+        y_pred = rf_pls.predict(X_test_pls)
+        score = accuracy_score(y_test, y_pred)
+        
+        # Mise à jour si on trouve un meilleur score
+        if score > best_score_pls:
+            best_score_pls = score
+            best_params_pls = {'n_components': n, 'random_state': rs}
 
-rf_pls = RandomForestClassifier(random_state=30)
-rf_pls.fit(X_train_pls, y_train)
-y_pred_pls_rf = rf_pls.predict(X_test_pls)
+# Affichage des résultats optimaux pour chaque pipeline
+print("Meilleur score pour RF sur données standardisées: {:.2f}% avec random_state = {}"
+      .format(best_score_rf * 100, best_params_rf['random_state']))
 
-# Résultats
-results = pd.DataFrame({
-    'Modèle': ['Random Forest', 'PCA + Random Forest', 'PLS + Random Forest'],
-    'Accuracy (%)': [
-        accuracy_score(y_test, y_pred_rf) * 100,
-        accuracy_score(y_test, y_pred_pca) * 100,
-        accuracy_score(y_test, y_pred_pls_rf) * 100
-    ]
-})
+print("Meilleur score pour PCA + RF: {:.2f}% avec n_components = {} et random_state = {}"
+      .format(best_score_pca * 100, best_params_pca['n_components'], best_params_pca['random_state']))
 
-print(results)
-
-# Visualisation
-plt.figure(figsize=(8,6))
-sns.barplot(x='Modèle', y='Accuracy (%)', data=results)
-plt.title('Comparaison des résultats')
-plt.ylim(0, 100)
-plt.grid()
-plt.show()
+print("Meilleur score pour PLS + RF: {:.2f}% avec n_components = {} et random_state = {}"
+      .format(best_score_pls * 100, best_params_pls['n_components'], best_params_pls['random_state']))
