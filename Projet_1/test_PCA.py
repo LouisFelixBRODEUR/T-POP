@@ -163,9 +163,22 @@ results = pd.DataFrame({
 print(results)
 
 # Visualisation
-plt.figure(figsize=(8,6))
-sns.barplot(x='Modèle', y='Accuracy (%)', data=results)
-plt.title('Comparaison des résultats')
+# Définir un style global pour une meilleure apparence
+sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
+
+plt.figure(figsize=(10, 6))
+ax = sns.barplot(x='Modèle', y='Accuracy (%)', data=results, errorbar=None)
+plt.title('Comparaison des résultats de classification')
+plt.xlabel("Modèle de classification")
+plt.ylabel("Précision (%)")
 plt.ylim(0, 100)
-plt.grid()
+plt.tight_layout()
+
+# Ajouter des annotations pour afficher la valeur de précision au-dessus de chaque barre
+for p in ax.patches:
+    height = p.get_height()
+    ax.annotate(f'{height:.3f}%', 
+                (p.get_x() + p.get_width() / 2., height), 
+                ha='center', va='bottom', fontsize=12, color='black')
+
 plt.show()
