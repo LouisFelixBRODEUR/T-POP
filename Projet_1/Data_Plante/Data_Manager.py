@@ -18,15 +18,16 @@ import itertools
 import random
 import torch.nn.init as init
 from torch.optim.lr_scheduler import CosineAnnealingLR
+from matplotlib.colors import Normalize
 
 
 class PlantDataManager:
-    def __init__(self, data_folders, data_labels, Background_Folder, plant_number):
+    def __init__(self, data_folders, data_labels, Background_Folder):
         self.data_folders = data_folders
         self.data_label = data_labels
         self.Background_Folder = Background_Folder
         self.Background_data = self.get_intensity_data_from_folder(self.Background_Folder)
-        self.plant_number = plant_number
+        self.plant_number = len(data_folders)
 
     def get_wavelength_data(self, base_dir):
         for file_name in os.listdir(base_dir):
@@ -109,7 +110,7 @@ class PlantDataManager:
                 labels.append(plant_name)
         return np.array(data), np.array(labels)
 
-    def train_plant_detector(self, num_epochs = 100):
+    def train_plant_detector(self, num_epochs = 100, show_progress=False):
         train_images, train_labels = self.load_data(self.data_folders) # Train image : 60 000*[784*[]] Train Label : 60 000*[]
 
         # Split train en pour garder un test set pour eviter le overfitting (test_size=0.1=>10%) (random_state=seed for reproductibility)
@@ -126,6 +127,10 @@ class PlantDataManager:
 
         criterion = nn.CrossEntropyLoss()  # Fonction de perte (Cross-Entropy Loss) good pour job de classification (0-9 digit out)
         optimizer = optim.Adam(self.model.parameters(), lr=0.001) 
+
+        loss_history = []
+        accuracy_history = []
+
         '''
         # model.parameters sont les weight a optimizer & lr(learning rate) est la grosseur des pas dptimizzation
         # Adaptive Moment Estimation (ADAM) => lr modulable avec le momentum de lamelioration du model
@@ -155,8 +160,23 @@ class PlantDataManager:
                 total_samples += labels.size(0)
             
             epoch_loss = running_loss / total_samples
+            loss_history.append(epoch_loss)
             accuracy = correct_predictions / total_samples * 100
+            accuracy_history.append(accuracy)
             print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Accuracy: {accuracy:.2f}%")
+
+        if show_progress:
+            loss_history = np.array(loss_history) / np.max(loss_history)
+            accuracy_history = np.array(accuracy_history) / np.max(accuracy_history)
+            plt.figure(figsize=(10, 5))
+            plt.plot(range(1, num_epochs + 1), loss_history, marker='o', linestyle='-', label = 'loss')
+            plt.plot(range(1, num_epochs + 1), accuracy_history, marker='o', linestyle='-', label = 'accuracy')
+            plt.xlabel("Epoch")
+            plt.ylabel("Loss and Accuracy (Normalized)")
+            plt.title("Loss Progression During Training")
+            plt.grid()
+            plt.legend()
+            plt.show()
 
     def save_model(self, model_name = 'model_test.pth'):
         torch.save(self.model.state_dict(), os.path.dirname(os.path.abspath(__file__))+ '\\' + model_name)
@@ -170,18 +190,31 @@ class PlantDataManager:
         else:
             print("No file selected. Model not loaded.")
 
-    def test_plant_detector(self):
+    def test_plant_detector(self, all_accuracy=False):
         self.model.eval()
         correct_predictions = 0
         total_samples = 0
+        plant_correct = np.zeros(self.plant_number)
+        plant_total = np.zeros(self.plant_number)
         with torch.no_grad():  # pas de grad car pas dajustement de poids
             for images, labels in self.val_loader:
                 outputs = self.model(images)
                 _, predicted = torch.max(outputs, 1) # valeur de reference
                 correct_predictions += (predicted == labels).sum().item()  # nombre de prediction ok
                 total_samples += labels.size(0)
+
+                for i in range(len(labels)):
+                    plant_total[labels[i].item()] += 1
+                    if predicted[i] == labels[i]:
+                        plant_correct[labels[i].item()] += 1
         accuracy = correct_predictions / total_samples * 100
         print(f"Final Test Accuracy: {accuracy:.2f}%")
+
+        if all_accuracy:
+            for i in range(self.plant_number):
+                if plant_total[i] > 0:
+                    plant_acc = (plant_correct[i] / plant_total[i]) * 100
+                    print(f"Accuracy for {self.data_label[i]}: {plant_acc:.2f}%")
     
     def show_data(self, graph_type='all', show_source=True):
         Plants_data = []
@@ -229,9 +262,13 @@ class PlantDataManager:
         plt.figure(figsize=(12, 6))
         
         # Plot spectral data
+        num_plants = len(self.data_folders)
+        norm = Normalize(vmin=0, vmax=num_plants - 1)
+        colormap = plt.get_cmap('tab20', num_plants) # hsv tab20 cubehelix gist_ncar
         for i, folder in enumerate(self.data_folders):
+            color = colormap(norm(i))  # Ensure unique colors
             data = np.mean(self.Prepare_data(folder), axis=0)  # Averaged spectral data per plant
-            plt.plot(self.Wavelength_bins_for_plot, data, label=self.data_label[i], alpha=0.8)
+            plt.plot(self.Wavelength_bins_for_plot, data, label=self.data_label[i], color=color)
 
         # Fill under the weight importance curve
         plt.fill_between(self.Wavelength_bins_for_plot, importance_per_wavelength, color='red', alpha=0.1, label="Importance des poids")
@@ -240,7 +277,7 @@ class PlantDataManager:
             plt.plot(self.Wavelength_bins_for_plot, self.Background_data_for_plot/np.max(self.Background_data_for_plot), label='Source', color = 'black')
 
         plt.xlabel("Longueur d'onde (nm)")
-        plt.ylabel("Intensité normalisée / Importance des poids")
+        plt.ylabel("Intensité & Importance des poids")
         plt.title("Analyse des données spectrales par type de plante avec l'importance des poids du modèle entrainé")
         plt.legend()
         plt.grid()
@@ -289,30 +326,55 @@ class PlantDataset(Dataset):
         return self.images[idx], self.labels[idx]
     
 def main():
-    # Load train & test data
-    Plante_1_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Scindapsus_aureus_20ms\\"
-    Plante_2_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Kalanchoe_daigremontianum_30ms\\"
-    Plante_3_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Dieffenbachia_seguine_20ms\\"
-    Plante_4_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Dracaena_fragrans_10ms\\"
-    Plante_5_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Tradescantia_spathacea_top_20ms\\"
-    Plante_6_folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Tradescantia_spathacea_bot_25ms\\"
-    Plant_Folders = [Plante_1_folder, Plante_2_folder, Plante_3_folder, Plante_4_folder, Plante_5_folder, Plante_6_folder]
-
+    Plant_Folders = [
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Scindapsus_aureus_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Kalanchoe_daigremontianum_30ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Dieffenbachia_seguine_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Dracaena_fragrans_10ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Tradescantia_spathacea_top_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Tradescantia_spathacea_bot_25ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Euphorbia_milii_50ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Pachypodium_rosulatum_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Monstera_deliciosa_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Ficus_lyrata_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Begonia_gryphon_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Iresine_herbstii_50ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Spathiphyllum_cochlearispathum_35ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Philodendron_atabapoense_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Oldenlandia_affinis_20ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Dracaena_fragrans_30ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Dracaena_trifasciata_10ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Philodendron_melanochrysum_10ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Ficus_alii_40ms\\",
+        os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Specialty_aglaonema_20ms\\"]
+    
     plant_names = [
-        'Scindapsus_aureus_20ms (Basic Plante)',
-        'Kalanchoe_daigremontianum_30ms (Bébé démembrés)',
-        'Dieffenbachia_seguine_20ms (Léopart)',
-        'Dracaena_fragrans_10ms (Verte-Jaune)',
-        'Tradescantia_spathacea_top_20ms (Côte Vert)',
-        'Tradescantia_spathacea_bot_25ms (Côte Rouge)'
-    ]
+        'Scindapsus_aureus',
+        'Kalanchoe_daigremontianum',
+        'Dieffenbachia_seguine',
+        'Dracaena_fragrans',
+        'Tradescantia_spathacea_top',
+        'Tradescantia_spathacea_bot',
+        'Euphorbia_milii',
+        'Pachypodium_rosulatum',
+        'Monstera_deliciosa',
+        'Ficus_lyrata',
+        'Begonia_gryphon',
+        'Iresine_herbstii',
+        'Spathiphyllum_cochlearispathum',
+        'Philodendron_atabapoense',
+        'Oldenlandia_affinis',
+        'Dracaena_fragrans',
+        'Dracaena_trifasciata',
+        'Philodendron_melanochrysum',
+        'Ficus_alii',
+        'Specialty_aglaonema']
 
     Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
-    plant_number = 6
-    MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder, plant_number)
+    MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
 
-    MyDataManager.train_plant_detector(num_epochs=200)
-    MyDataManager.test_plant_detector()
+    MyDataManager.train_plant_detector(num_epochs=200, show_progress=False)
+    MyDataManager.test_plant_detector(all_accuracy=False)
     MyDataManager.show_data_with_weights()
 
     # MyDataManager.show_data(graph_type='all', show_source=True)
