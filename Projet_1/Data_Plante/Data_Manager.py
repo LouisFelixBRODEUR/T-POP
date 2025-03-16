@@ -51,9 +51,9 @@ class PlantDataManager:
         return np.convolve(data, kernel, mode='same')  # Apply convolution
 
     def Prepare_data(self, Plante_folder):
-        BG_data = self.Background_data
-        BG_data = np.mean(BG_data, axis=0)
-        Wavelength_bins = self.get_wavelength_data(self.Background_Folder)
+        self.Background_data_for_plot = self.Background_data
+        self.Background_data_for_plot = np.mean(self.Background_data_for_plot, axis=0)
+        self.Wavelength_bins_for_plot = self.get_wavelength_data(self.Background_Folder)
 
         Spectro_data = self.get_intensity_data_from_folder(Plante_folder)
         Spectro_data = [arr for arr in Spectro_data if np.all(np.max(arr) <= 63500)] # Remove saturated
@@ -62,22 +62,22 @@ class PlantDataManager:
         # Cap_low, Cap_high = 300, 840
         # Cap_low, Cap_high = 645, 735 
         Cap_low, Cap_high = 420, 800
-        low_index = np.argmin(np.abs(Wavelength_bins - Cap_low))
-        high_index = np.argmin(np.abs(Wavelength_bins - Cap_high))
+        low_index = np.argmin(np.abs(self.Wavelength_bins_for_plot - Cap_low))
+        high_index = np.argmin(np.abs(self.Wavelength_bins_for_plot - Cap_high))
 
-        BG_data = self.moving_average(BG_data, window_size=5) # Smoothen Background
-        # BG_data = BG_data/np.max(BG_data) # Normalize Background
-        Spectro_data = [arr/BG_data for arr in Spectro_data] # Divide Data by Background
+        self.Background_data_for_plot = self.moving_average(self.Background_data_for_plot, window_size=5) # Smoothen Background
+        # self.Background_data_for_plot = self.Background_data_for_plot/np.max(self.Background_data_for_plot) # Normalize Background
+        Spectro_data = [arr/self.Background_data_for_plot for arr in Spectro_data] # Divide Data by Background
 
         Spectro_data = [self.moving_average(arr, window_size=30) for arr in Spectro_data] # Smoothen Spectral Data
         
         Spectro_data = [arr[low_index:high_index] for arr in Spectro_data]
-        self.Wavelength_bins_for_plot = Wavelength_bins[low_index:high_index]
-        self.Background_data_for_plot = BG_data[low_index:high_index]
+        self.Wavelength_bins_for_plot = self.Wavelength_bins_for_plot[low_index:high_index]
+        self.Background_data_for_plot = self.Background_data_for_plot[low_index:high_index]
 
         Spectro_data = [arr / np.max(arr) for arr in Spectro_data] # Normalize Spectral Data
-        # Spectro_data -= BG_data
-
+        # Spectro_data -= self.Background_data_for_plot
+    
         return Spectro_data
 
     def get_intensity_data_from_folder(self, base_dir):
@@ -175,7 +175,7 @@ class PlantDataManager:
             plt.ylabel("Loss and Accuracy (Normalized)")
             plt.title("Loss Progression During Training")
             plt.grid()
-            plt.legend()
+            plt.legend(loc = 2)
             plt.show()
 
     def save_model(self, model_name = 'model_test.pth'):
@@ -241,7 +241,7 @@ class PlantDataManager:
         plt.grid()
         plt.xlabel("Longueur d'onde (nm)")
         plt.ylabel("Intensité")
-        plt.legend()
+        plt.legend(loc = 2)
         plt.show()
 
     def show_data_with_weights(self, show_source=True):
@@ -279,7 +279,7 @@ class PlantDataManager:
         plt.xlabel("Longueur d'onde (nm)")
         plt.ylabel("Intensité & Importance des poids")
         plt.title("Analyse des données spectrales par type de plante avec l'importance des poids du modèle entrainé")
-        plt.legend()
+        plt.legend(loc = 2)
         plt.grid()
 
         plt.show()
@@ -373,7 +373,7 @@ def main():
     Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
     MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
 
-    MyDataManager.train_plant_detector(num_epochs=200, show_progress=False)
+    MyDataManager.train_plant_detector(num_epochs=1000, show_progress=False)
     MyDataManager.test_plant_detector(all_accuracy=False)
     MyDataManager.show_data_with_weights()
 

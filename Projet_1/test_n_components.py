@@ -78,28 +78,49 @@ def load_data(plante_folder_paths, background_folder):
 # Dossiers à charger
 base_dir = os.path.dirname(os.path.abspath(__file__))
 background_folder = os.path.join(base_dir, "Data_Plante", "Session3", "Background_7ms_feuille_blanche")
+# plante_folder_paths = [
+#     os.path.join(base_dir,"Data_Plante", "Session3", "Scindapsus_aureus_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session3", "Kalanchoe_daigremontianum_30ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session3", "Dieffenbachia_seguine_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session3", "Dracaena_fragrans_10ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session3", "Tradescantia_spathacea_top_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante1_50ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante2_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante3_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante4_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante5_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante6_50ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante7_35ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante8_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante9_20ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante10_30ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante11_10ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante12_10ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante13_40ms"),
+#     os.path.join(base_dir,"Data_Plante", "Session4", "Plante14_20ms")
+# ]
+
 plante_folder_paths = [
     os.path.join(base_dir,"Data_Plante", "Session3", "Scindapsus_aureus_20ms"),
     os.path.join(base_dir,"Data_Plante", "Session3", "Kalanchoe_daigremontianum_30ms"),
     os.path.join(base_dir,"Data_Plante", "Session3", "Dieffenbachia_seguine_20ms"),
     os.path.join(base_dir,"Data_Plante", "Session3", "Dracaena_fragrans_10ms"),
     os.path.join(base_dir,"Data_Plante", "Session3", "Tradescantia_spathacea_top_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante1_50ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante2_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante3_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante4_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante5_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante6_50ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante7_35ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante8_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante9_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante10_30ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante11_10ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante12_10ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante13_40ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Plante14_20ms")
-
-
+    os.path.join(base_dir,"Data_Plante", "Session3", "Tradescantia_spathacea_bot_25ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Euphorbia_milii_50ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Pachypodium_rosulatum_20ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Monstera_deliciosa_20ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Ficus_lyrata_20ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Begonia_gryphon_20ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Iresine_herbstii_50ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Spathiphyllum_cochlearispathum_35ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Philodendron_atabapoense_20ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Oldenlandia_affinis_20ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Dracaena_fragrans_30ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Dracaena_trifasciata_10ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Philodendron_melanochrysum_10ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Ficus_alii_40ms"),
+    os.path.join(base_dir,"Data_Plante", "Session4", "Specialty_aglaonema_20ms")
 ]
 
 # Chargement des données
