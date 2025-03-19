@@ -61,7 +61,8 @@ class PlantDataManager:
         # range de nanometre a analyser
         # Cap_low, Cap_high = 300, 840
         # Cap_low, Cap_high = 645, 735 
-        Cap_low, Cap_high = 420, 800
+        # Cap_low, Cap_high = 420, 800
+        Cap_low, Cap_high = 435, 800
         low_index = np.argmin(np.abs(self.Wavelength_bins_for_plot - Cap_low))
         high_index = np.argmin(np.abs(self.Wavelength_bins_for_plot - Cap_high))
 
@@ -274,12 +275,24 @@ class PlantDataManager:
         plt.fill_between(self.Wavelength_bins_for_plot, importance_per_wavelength, color='red', alpha=0.1, label="Importance des poids")
 
         if show_source:
-            plt.plot(self.Wavelength_bins_for_plot, self.Background_data_for_plot/np.max(self.Background_data_for_plot), label='Source', color = 'black')
+            plt.plot(self.Wavelength_bins_for_plot, self.Background_data_for_plot/np.max(self.Background_data_for_plot), label='Source LED', color = 'black', linestyle="--")
 
-        plt.xlabel("Longueur d'onde (nm)")
-        plt.ylabel("Intensité & Importance des poids")
-        plt.title("Analyse des données spectrales par type de plante avec l'importance des poids du modèle entrainé")
-        plt.legend(loc = 2)
+        plt.xlabel("Longueur d'onde (nm)", fontsize=25)
+        plt.ylabel("Intensité et Importance des poids", fontsize=25)
+        # plt.title("Analyse des données spectrales par type de plante avec l'importance des poids du modèle entrainé")
+        plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
+        # plt.legend(loc = 'lower right', fontsize=10)
+
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=15)
+        plt.tight_layout()
+        plt.subplots_adjust(
+            top=0.985,
+            bottom=0.08,
+            left=0.055,
+            right=0.77)
+
+        plt.autoscale(enable=True, axis='both', tight=True)
+
         plt.grid()
 
         plt.show()
@@ -349,32 +362,32 @@ def main():
         os.path.dirname(os.path.abspath(__file__)) +"\\Session4\\Specialty_aglaonema_20ms\\"]
     
     plant_names = [
-        'Scindapsus_aureus',
-        'Kalanchoe_daigremontianum',
-        'Dieffenbachia_seguine',
-        'Dracaena_fragrans',
-        'Tradescantia_spathacea_top',
-        'Tradescantia_spathacea_bot',
-        'Euphorbia_milii',
-        'Pachypodium_rosulatum',
-        'Monstera_deliciosa',
-        'Ficus_lyrata',
-        'Begonia_gryphon',
-        'Iresine_herbstii',
-        'Spathiphyllum_cochlearispathum',
-        'Philodendron_atabapoense',
-        'Oldenlandia_affinis',
-        'Dracaena_fragrans',
-        'Dracaena_trifasciata',
-        'Philodendron_melanochrysum',
-        'Ficus_alii',
-        'Specialty_aglaonema']
+        'Scindapsus aureus',
+        'Kalanchoe daigremontianum',
+        'Dieffenbachia seguine',
+        'Dracaena fragrans',
+        'Tradescantia spathacea (dessus)',
+        'Tradescantia_spathacea (dessous)',
+        'Euphorbia milii',
+        'Pachypodium rosulatum',
+        'Monstera deliciosa',
+        'Ficus lyrata',
+        'Begonia gryphon',
+        'Iresine herbstii',
+        'Spathiphyllum cochlearispathum',
+        'Philodendron atabapoense',
+        'Oldenlandia affinis',
+        'Dracaena fragrans',
+        'Dracaena trifasciata',
+        'Philodendron melanochrysum',
+        'Ficus alii',
+        'Specialty aglaonema']
 
     Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
     MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
 
-    MyDataManager.train_plant_detector(num_epochs=1000, show_progress=False)
-    MyDataManager.test_plant_detector(all_accuracy=False)
+    MyDataManager.train_plant_detector(num_epochs=1000, show_progress=True)
+    MyDataManager.test_plant_detector(all_accuracy=True)
     MyDataManager.show_data_with_weights()
 
     # MyDataManager.show_data(graph_type='all', show_source=True)
