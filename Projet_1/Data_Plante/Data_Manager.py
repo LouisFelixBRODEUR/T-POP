@@ -61,8 +61,8 @@ class PlantDataManager:
         # range de nanometre a analyser
         # Cap_low, Cap_high = 300, 840
         # Cap_low, Cap_high = 645, 735 
-        # Cap_low, Cap_high = 420, 800
-        Cap_low, Cap_high = 435, 800
+        Cap_low, Cap_high = 420, 800
+        # Cap_low, Cap_high = 435, 800
         low_index = np.argmin(np.abs(self.Wavelength_bins_for_plot - Cap_low))
         high_index = np.argmin(np.abs(self.Wavelength_bins_for_plot - Cap_high))
 
