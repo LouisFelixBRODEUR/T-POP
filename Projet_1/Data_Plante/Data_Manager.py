@@ -395,27 +395,25 @@ def main():
     
     Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
 
-    accuracy_en_fct_de_nb_plante = []
-    nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
-    Loaded_data_dict = 'No'
-    for nb_de_plante in nb_de_plante_dans_le_dataset:
-        print(f'Testing for {nb_de_plante} plants')
-        sum_accuracy = []
-        for test_nb in range(10):
-            print(f'Test {test_nb}/10 ({nb_de_plante} plants in dataset)')
-            random_values = random.sample(list(range(0,len(plant_names))), nb_de_plante) #Choisi des plante au hasard dans le set
-            MyDataManager = PlantDataManager([Plant_Folders[i] for i in random_values], [plant_names[i] for i in random_values], Background_Folder, Loaded_data_dict=Loaded_data_dict)
-            MyDataManager.train_plant_detector(num_epochs=50*len(plant_names))
-            # MyDataManager.train_plant_detector(num_epochs=3)
-            sum_accuracy.append(MyDataManager.test_plant_detector(return_accuracy=True))
-            Loaded_data_dict = MyDataManager.data_dict
-            del MyDataManager
-        accuracy_en_fct_de_nb_plante.append(np.mean(sum_accuracy))
+    # accuracy_en_fct_de_nb_plante = []
+    # nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
+    # Loaded_data_dict = 'No'
+    # for nb_de_plante in nb_de_plante_dans_le_dataset:
+    #     print(f'Testing for {nb_de_plante} plants')
+    #     sum_accuracy = []
+    #     for test_nb in range(10):
+    #         print(f'Test {test_nb}/10 ({nb_de_plante} plants in dataset)')
+    #         random_values = random.sample(list(range(0,len(plant_names))), nb_de_plante) #Choisi des plante au hasard dans le set
+    #         MyDataManager = PlantDataManager([Plant_Folders[i] for i in random_values], [plant_names[i] for i in random_values], Background_Folder, Loaded_data_dict=Loaded_data_dict)
+    #         MyDataManager.train_plant_detector(num_epochs=50*nb_de_plante)
+    #         # MyDataManager.train_plant_detector(num_epochs=3)
+    #         sum_accuracy.append(MyDataManager.test_plant_detector(return_accuracy=True))
+    #         Loaded_data_dict = MyDataManager.data_dict
+    #         del MyDataManager
+    #     accuracy_en_fct_de_nb_plante.append(np.mean(sum_accuracy))
 
-    # accuracy_en_fct_de_nb_plante = [100.0, 90.48, 81.84, 74.00, 66.89, 60.43, 54.57, 49.25, 
-    # 44.42, 40.03, 36.03, 32.39, 29.08, 26.06, 23.30, 20.79, 
-    # 18.50, 16.41, 14.50, 12.76]
-    # nb_de_plante_dans_le_dataset = list(range(1, len(accuracy_en_fct_de_nb_plante) + 1))
+    accuracy_en_fct_de_nb_plante = [np.float64(100.0), np.float64(99.2560975609756), np.float64(89.26666666666667), np.float64(92.60956790123456), np.float64(92.708885479672), np.float64(86.85681818181817), np.float64(81.99332858975608), np.float64(85.99078540590638), np.float64(89.38433243544735), np.float64(89.43931396171963), np.float64(84.80928255340828), np.float64(88.78736053901918), np.float64(90.45224508955985), np.float64(89.98757380758937), np.float64(88.9289277426837), np.float64(89.94766112574332), np.float64(89.1550713712729), np.float64(90.79045922762613), np.float64(92.1112851028291), np.float64(89.52978056426333)]
+    nb_de_plante_dans_le_dataset = list(range(1, len(accuracy_en_fct_de_nb_plante) + 1))
 
     print(accuracy_en_fct_de_nb_plante)
 
