@@ -7,6 +7,8 @@ from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import make_scorer
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -179,6 +181,19 @@ print(f"R² sur les données d'entraînement : {r2_train:.2f}")
 r2_test = pls.score(X_test_scaled, y_test)
 print(f"R² sur les données de test : {r2_test:.2f}")
 
+
+# Utilisation de la validation croisée sur le modèle
+# 'cv=5' signifie que nous allons utiliser une validation croisée à 5 plis (5-fold cross-validation)
+# 'scoring' est une mesure de performance, ici R^2 pour une régression
+
+scores = cross_val_score(pls, X_train_scaled, y_train, cv=5, scoring='r2')
+
+# Afficher les scores de chaque fold
+print(f"Scores R² pour chaque fold : {scores}")
+
+# Calculer la moyenne et l'écart-type des scores
+print(f"Score moyen R² : {scores.mean():.4f}")
+print(f"Écart-type des scores R² : {scores.std():.4f}")
 
 rf_pls = RandomForestClassifier(random_state=30)
 rf_pls.fit(X_train_pls, y_train)
