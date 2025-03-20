@@ -425,6 +425,7 @@ def main():
     plt.xlabel("Nombre de plantes dans le dataset", fontsize=25)
     plt.ylabel("Précision (%)", fontsize=25)
     plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
+    plt.xticks(range(min(nb_de_plante_dans_le_dataset), max(nb_de_plante_dans_le_dataset) + 1, 1))
     # plt.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=15)
     # plt.tight_layout()
     plt.subplots_adjust(
