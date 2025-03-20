@@ -7,6 +7,8 @@ from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import make_scorer
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -165,10 +167,40 @@ pls = PLSRegression(n_components=30)
 pls.fit(X_train_scaled, y_train)
 X_train_pls = pls.transform(X_train_scaled)
 X_test_pls = pls.transform(X_test_scaled)
+# # Prédictions sur les données de test
+# y_pred_pls = pls.predict(X_test_scaled)
+
+# # # Si c'est un problème de classification, tu peux arrondir les prédictions pour obtenir des classes discrètes
+# y_pred_pls_classes = np.round(y_pred_pls).astype(int)
+
+# Obtenir R² sur les données d'entraînement
+r2_train = pls.score(X_train_scaled, y_train)
+print(f"R² sur les données d'entraînement : {r2_train:.2f}")
+
+# Obtenir R² sur les données de test
+r2_test = pls.score(X_test_scaled, y_test)
+print(f"R² sur les données de test : {r2_test:.2f}")
+
+
+# Utilisation de la validation croisée sur le modèle
+# 'cv=5' signifie que nous allons utiliser une validation croisée à 5 plis (5-fold cross-validation)
+# 'scoring' est une mesure de performance, ici R^2 pour une régression
+
+scores = cross_val_score(pls, X_train_scaled, y_train, cv=5, scoring='r2')
+
+# Afficher les scores de chaque fold
+print(f"Scores R² pour chaque fold : {scores}")
+
+# Calculer la moyenne et l'écart-type des scores
+print(f"Score moyen R² : {scores.mean():.4f}")
+print(f"Écart-type des scores R² : {scores.std():.4f}")
 
 rf_pls = RandomForestClassifier(random_state=30)
 rf_pls.fit(X_train_pls, y_train)
 y_pred_pls_rf = rf_pls.predict(X_test_pls)
+
+
+
 
 # Résultats
 results = pd.DataFrame({
@@ -177,15 +209,69 @@ results = pd.DataFrame({
         accuracy_score(y_test, y_pred_rf) * 100,
         accuracy_score(y_test, y_pred_pca) * 100,
         accuracy_score(y_test, y_pred_pls_rf) * 100
+        
     ]
 })
 
 print(results)
 
-# Visualisation
-# Définir un style global pour une meilleure apparence
-sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
 
+# Calculer la moyenne et l'écart-type des données standardisées
+print("Moyenne des données après standardisation :")
+print(np.mean(X_train_scaled, axis=0))  # Devrait être proche de 0
+print("\nÉcart-type des données après standardisation :")
+print(np.std(X_train_scaled, axis=0))  # Devrait être proche de 1
+
+
+# # Visualisation
+# # Graphique de la variance expliquée par PCA
+plt.figure(figsize=(10, 6))
+plt.plot(np.cumsum(pca.explained_variance_ratio_))
+plt.title('Cumulative Explained Variance by PCA Components')
+plt.xlabel('Number of Components')
+plt.ylabel('Cumulative Explained Variance')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# # Graphique des scores de PLS
+plt.figure(figsize=(10, 6))
+plt.scatter(X_train_pls[:, 0], X_train_pls[:, 1], c=y_train, cmap='viridis')
+plt.title('PLS Regression Scores Plot')
+plt.xlabel('PLS1')
+plt.ylabel('PLS2')
+plt.colorbar(label='Class Labels')
+plt.tight_layout()
+plt.show()
+
+# Graphique de l'importance des caractéristiques dans Random Forest
+plt.figure(figsize=(10, 6))
+
+# # Calcul de l'importance des caractéristiques
+feature_importances = rf.feature_importances_
+
+# # Tri des caractéristiques par importance
+indices = np.argsort(feature_importances)[::-1]
+
+# # Nombre de caractéristiques à afficher (par exemple, les 20 plus importantes)
+n_top_features = 20
+
+# # Affichage du graphique pour les 20 caractéristiques les plus importantes
+plt.bar(range(n_top_features), feature_importances[indices][:n_top_features])
+
+# # Affichage des longueurs d'onde correspondantes aux caractéristiques les plus importantes
+wavelengths = np.linspace(420, 800, X_train_scaled.shape[1])  # Ajuste cela selon tes données
+plt.xticks(range(n_top_features), [f'{wavelength:.0f} nm' for wavelength in wavelengths[indices][:n_top_features]], rotation=90)
+
+plt.title('Top 20 Feature Importances in Random Forest')
+plt.xlabel('Wavelength (nm)')
+plt.ylabel('Importance')
+plt.tight_layout()
+plt.show()
+
+
+# # Graphique de comparaison des résultats de classification
+sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
 plt.figure(figsize=(10, 6))
 ax = sns.barplot(x='Modèle', y='Accuracy (%)', data=results, errorbar=None)
 plt.title('Comparaison des résultats de classification')
@@ -194,7 +280,7 @@ plt.ylabel("Précision (%)")
 plt.ylim(0, 100)
 plt.tight_layout()
 
-# Ajouter des annotations pour afficher la valeur de précision au-dessus de chaque barre
+# # Ajouter des annotations pour afficher la valeur de précision au-dessus de chaque barre
 for p in ax.patches:
     height = p.get_height()
     ax.annotate(f'{height:.3f}%', 
