@@ -15,17 +15,20 @@ import random
 import matplotlib.cm as cm
 from tkinter import filedialog
 import itertools
-import random
 import torch.nn.init as init
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from matplotlib.colors import Normalize
 
 
 class PlantDataManager:
-    def __init__(self, data_folders, data_labels, Background_Folder):
+    def __init__(self, data_folders, data_labels, Background_Folder, Loaded_data_dict='No'):
         self.data_folders = data_folders
         self.data_label = data_labels
         self.Background_Folder = Background_Folder
+        if Loaded_data_dict == 'No':
+            self.data_dict = {}
+        else:
+            self.data_dict = Loaded_data_dict
         self.Background_data = self.get_intensity_data_from_folder(self.Background_Folder)
         self.plant_number = len(data_folders)
 
@@ -82,24 +85,28 @@ class PlantDataManager:
         return Spectro_data
 
     def get_intensity_data_from_folder(self, base_dir):
-        intensity_data = []
-        for file_name in os.listdir(base_dir):
-            if file_name.endswith(".txt"):  # Process only .txt files
-                file_path = os.path.join(base_dir, file_name)
+        if base_dir in self.data_dict:
+            return self.data_dict[base_dir]
+        else:
+            intensity_data = []
+            for file_name in os.listdir(base_dir):
+                if file_name.endswith(".txt"):  # Process only .txt files
+                    file_path = os.path.join(base_dir, file_name)
 
-                with open(file_path, "r") as file:
-                    lines = file.readlines()
-                
-                # Find the starting point of spectral data
-                for i, line in enumerate(lines):
-                    if ">>>>>Begin Spectral Data<<<<<" in line:
-                        data_start = i + 1
-                        break
+                    with open(file_path, "r") as file:
+                        lines = file.readlines()
+                    
+                    # Find the starting point of spectral data
+                    for i, line in enumerate(lines):
+                        if ">>>>>Begin Spectral Data<<<<<" in line:
+                            data_start = i + 1
+                            break
 
-                # Read spectral data and extract only intensity values
-                data = pd.read_csv(file_path, skiprows=data_start, delimiter="\t", names=["Wavelength", "Intensity"])
-                intensity_data.append(data["Intensity"].tolist())  # Append only the intensity column as a list
-        return intensity_data
+                    # Read spectral data and extract only intensity values
+                    data = pd.read_csv(file_path, skiprows=data_start, delimiter="\t", names=["Wavelength", "Intensity"])
+                    intensity_data.append(data["Intensity"].tolist())  # Append only the intensity column as a list
+            self.data_dict[base_dir] = intensity_data
+            return intensity_data
 
     def load_data(self, plante_folder_paths):
         data = []
@@ -191,7 +198,7 @@ class PlantDataManager:
         else:
             print("No file selected. Model not loaded.")
 
-    def test_plant_detector(self, all_accuracy=False):
+    def test_plant_detector(self, all_accuracy=False, return_accuracy=False):
         self.model.eval()
         correct_predictions = 0
         total_samples = 0
@@ -210,6 +217,9 @@ class PlantDataManager:
                         plant_correct[labels[i].item()] += 1
         accuracy = correct_predictions / total_samples * 100
         print(f"Final Test Accuracy: {accuracy:.2f}%")
+
+        if return_accuracy:
+            return accuracy
 
         if all_accuracy:
             for i in range(self.plant_number):
@@ -337,7 +347,7 @@ class PlantDataset(Dataset):
     
     def __getitem__(self, idx):
         return self.images[idx], self.labels[idx]
-    
+        
 def main():
     Plant_Folders = [
         os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Scindapsus_aureus_20ms\\",
@@ -382,13 +392,55 @@ def main():
         'Philodendron melanochrysum',
         'Ficus alii',
         'Specialty aglaonema']
-
+    
     Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
-    MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
 
-    MyDataManager.train_plant_detector(num_epochs=1000, show_progress=True)
-    MyDataManager.test_plant_detector(all_accuracy=True)
-    MyDataManager.show_data_with_weights()
+    accuracy_en_fct_de_nb_plante = []
+    nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
+    Loaded_data_dict = 'No'
+    for nb_de_plante in nb_de_plante_dans_le_dataset:
+        print(f'Testing for {nb_de_plante} plants')
+        sum_accuracy = []
+        for test_nb in range(10):
+            print(f'Test {test_nb}/10 ({nb_de_plante} plants in dataset)')
+            random_values = random.sample(list(range(0,len(plant_names))), nb_de_plante) #Choisi des plante au hasard dans le set
+            MyDataManager = PlantDataManager([Plant_Folders[i] for i in random_values], [plant_names[i] for i in random_values], Background_Folder, Loaded_data_dict=Loaded_data_dict)
+            MyDataManager.train_plant_detector(num_epochs=50*len(plant_names))
+            # MyDataManager.train_plant_detector(num_epochs=3)
+            sum_accuracy.append(MyDataManager.test_plant_detector(return_accuracy=True))
+            Loaded_data_dict = MyDataManager.data_dict
+            del MyDataManager
+        accuracy_en_fct_de_nb_plante.append(np.mean(sum_accuracy))
+
+    # accuracy_en_fct_de_nb_plante = [100.0, 90.48, 81.84, 74.00, 66.89, 60.43, 54.57, 49.25, 
+    # 44.42, 40.03, 36.03, 32.39, 29.08, 26.06, 23.30, 20.79, 
+    # 18.50, 16.41, 14.50, 12.76]
+    # nb_de_plante_dans_le_dataset = list(range(1, len(accuracy_en_fct_de_nb_plante) + 1))
+
+    print(accuracy_en_fct_de_nb_plante)
+
+    # Create the plot
+    plt.figure(figsize=(8, 5))
+    plt.plot(nb_de_plante_dans_le_dataset, accuracy_en_fct_de_nb_plante, marker='o', linestyle='-')
+    plt.xlabel("Nombre de plantes dans le dataset", fontsize=25)
+    plt.ylabel("Précision (%)", fontsize=25)
+    plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
+    plt.xticks(range(min(nb_de_plante_dans_le_dataset), max(nb_de_plante_dans_le_dataset) + 1, 1))
+    # plt.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=15)
+    # plt.tight_layout()
+    plt.subplots_adjust(
+        top=0.995,
+        bottom=0.085,
+        left=0.06,
+        right=0.995)
+    plt.grid(True)
+    plt.show()
+
+    # MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
+
+    # MyDataManager.train_plant_detector(num_epochs=1000, show_progress=True)
+    # MyDataManager.test_plant_detector(all_accuracy=True)
+    # MyDataManager.show_data_with_weights()
 
     # MyDataManager.show_data(graph_type='all', show_source=True)
 
