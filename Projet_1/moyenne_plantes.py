@@ -164,7 +164,7 @@ def graphique_precision(X, y, max_plantes, repetitions=5):
 
 # Exemple d'utilisation :
 # Affichage des matrices de confusion (5 graphiques)
-accuracy_moyenne, accuracy_std = evaluer_modele(X_scaled, y_encoded, nb_plantes=20, repetitions=10, afficher_confusion=True)
+# accuracy_moyenne, accuracy_std = evaluer_modele(X_scaled, y_encoded, nb_plantes=20, repetitions=10, afficher_confusion=True)
 
 # Affichage du graphique de précision (sans matrices de confusion supplémentaires)
-graphique_precision(X_scaled, y_encoded, max_plantes=20, repetitions=10)
+graphique_precision(X_scaled, y_encoded, max_plantes=20, repetitions=100)
