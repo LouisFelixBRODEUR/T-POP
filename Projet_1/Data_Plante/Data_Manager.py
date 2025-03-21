@@ -395,7 +395,7 @@ def main():
     
     Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
 
-    # accuracy_en_fct_de_nb_plante = []
+    # accuracy_NN = []
     # nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
     # Loaded_data_dict = 'No'
     # for nb_de_plante in nb_de_plante_dans_le_dataset:
@@ -410,22 +410,24 @@ def main():
     #         sum_accuracy.append(MyDataManager.test_plant_detector(return_accuracy=True))
     #         Loaded_data_dict = MyDataManager.data_dict
     #         del MyDataManager
-    #     accuracy_en_fct_de_nb_plante.append(np.mean(sum_accuracy))
+    #     accuracy_NN.append(np.mean(sum_accuracy))
+    # print(accuracy_NN)
 
-    accuracy_en_fct_de_nb_plante = [np.float64(100.0), np.float64(99.2560975609756), np.float64(89.26666666666667), np.float64(92.60956790123456), np.float64(92.708885479672), np.float64(86.85681818181817), np.float64(81.99332858975608), np.float64(85.99078540590638), np.float64(89.38433243544735), np.float64(89.43931396171963), np.float64(84.80928255340828), np.float64(88.78736053901918), np.float64(90.45224508955985), np.float64(89.98757380758937), np.float64(88.9289277426837), np.float64(89.94766112574332), np.float64(89.1550713712729), np.float64(90.79045922762613), np.float64(92.1112851028291), np.float64(89.52978056426333)]
-    nb_de_plante_dans_le_dataset = list(range(1, len(accuracy_en_fct_de_nb_plante) + 1))
+    accuracy_NN = [np.float64(100.0), np.float64(99.2560975609756), np.float64(89.26666666666667), np.float64(92.60956790123456), np.float64(92.708885479672), np.float64(86.85681818181817), np.float64(81.99332858975608), np.float64(85.99078540590638), np.float64(89.38433243544735), np.float64(89.43931396171963), np.float64(84.80928255340828), np.float64(88.78736053901918), np.float64(90.45224508955985), np.float64(89.98757380758937), np.float64(88.9289277426837), np.float64(89.94766112574332), np.float64(89.1550713712729), np.float64(90.79045922762613), np.float64(92.1112851028291), np.float64(89.52978056426333)]
+    accuracy_fit_mean = [np.float64(100.0), np.float64(91.848968331081), np.float64(88.02206978879114), np.float64(84.1692104260871), np.float64(82.07475183456529), np.float64(78.36975368052478), np.float64(77.87573437371694), np.float64(75.52681093884098), np.float64(72.42503440544938), np.float64(71.97732384827768), np.float64(72.44295844301737), np.float64(70.16321629294151), np.float64(70.70338892546624), np.float64(69.35790727507292), np.float64(68.72889897196383), np.float64(67.30563177739639), np.float64(66.79756944256683), np.float64(66.06421356273192), np.float64(65.3292203935755), np.float64(64.86466165413535)]
+    nb_de_plante_dans_le_dataset = list(range(1, len(accuracy_NN) + 1))
 
-    print(accuracy_en_fct_de_nb_plante)
 
     # Create the plot
     plt.figure(figsize=(8, 5))
-    plt.plot(nb_de_plante_dans_le_dataset, accuracy_en_fct_de_nb_plante, marker='o', linestyle='-')
+    plt.plot(nb_de_plante_dans_le_dataset, accuracy_NN, marker='o', linestyle='-', label='accuracy_NN')
+    plt.plot(nb_de_plante_dans_le_dataset, accuracy_fit_mean, marker='o', linestyle='-', label='accuracy_fit_mean')
     plt.xlabel("Nombre de plantes dans le dataset", fontsize=25)
     plt.ylabel("Précision (%)", fontsize=25)
     plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
     plt.xticks(range(min(nb_de_plante_dans_le_dataset), max(nb_de_plante_dans_le_dataset) + 1, 1))
-    # plt.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=15)
-    # plt.tight_layout()
+    plt.legend(loc='lower left', fontsize=15)
+    plt.tight_layout()
     plt.subplots_adjust(
         top=0.995,
         bottom=0.085,
