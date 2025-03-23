@@ -116,7 +116,27 @@ class PlantDataManager:
             plant_name = i
             for j in range(len(data)-len(labels)):
                 labels.append(plant_name)
-        return np.array(data), np.array(labels)
+        data, labels = np.array(data), np.array(labels)
+        # --------------------------------------------
+        # if len(data) > 100: #Coupe a 100 si plus que 100
+        #     indices = np.random.choice(len(data), size=100, replace=False)
+        #     data = data[indices]
+        #     labels = labels[indices]
+        # --------------------------------------------
+        unique_labels, counts = np.unique(labels, return_counts=True)
+        min_count = min(counts)
+        new_data = []
+        new_labels = []
+        for label in unique_labels:
+            label_indices = np.where(labels == label)[0]
+            sampled_indices = np.random.choice(label_indices, size=min_count, replace=False)
+            new_data.append(data[sampled_indices])
+            new_labels.append(labels[sampled_indices])
+        new_data = np.concatenate(new_data)
+        new_labels = np.concatenate(new_labels)
+        # --------------------------------------------
+
+        return new_data, new_labels
 
     def train_plant_detector(self, num_epochs = 100, show_progress=False):
         train_images, train_labels = self.load_data(self.data_folders) # Train image : 60 000*[784*[]] Train Label : 60 000*[]
@@ -153,14 +173,14 @@ class PlantDataManager:
             
             for images, labels in train_loader:
                 # Test et quantification de la fonction de perte
-                outputs = self.model(images)
+                outputs = self.model(images) # y_pred
                 loss = criterion(outputs, labels)
-                
-                # Backpropagation et optimization
                 optimizer.zero_grad() # RESET from last iteration
+
+                # Backpropagation et optimization
                 loss.backward()  # Calcul du gradient via backpropagation
                 optimizer.step()  # mise a jour des poids
-                
+            
                 # Calculs pour stats...
                 running_loss += loss.item() * images.size(0)
                 _, predicted = torch.max(outputs, 1)
@@ -329,12 +349,14 @@ class ModulableNN(nn.Module):
         
         # Output
         self.layers.append(nn.Linear(neurons_per_layer, output_size))
+        # self.softmax = nn.Softmax(dim=1)
     
     def forward(self, x):
         x = x.to(torch.float32)
         x = x.view(-1, self.input_size)
         for layer in self.layers:
             x = layer(x)
+        # x = self.softmax(x)
         return x
         
 class PlantDataset(Dataset):
@@ -394,35 +416,35 @@ def main():
         'Specialty aglaonema']
     
     Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
+    nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
 
-    # accuracy_NN = []
-    # nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
-    # Loaded_data_dict = 'No'
-    # for nb_de_plante in nb_de_plante_dans_le_dataset:
-    #     print(f'Testing for {nb_de_plante} plants')
-    #     sum_accuracy = []
-    #     for test_nb in range(10):
-    #         print(f'Test {test_nb}/10 ({nb_de_plante} plants in dataset)')
-    #         random_values = random.sample(list(range(0,len(plant_names))), nb_de_plante) #Choisi des plante au hasard dans le set
-    #         MyDataManager = PlantDataManager([Plant_Folders[i] for i in random_values], [plant_names[i] for i in random_values], Background_Folder, Loaded_data_dict=Loaded_data_dict)
-    #         MyDataManager.train_plant_detector(num_epochs=50*nb_de_plante)
-    #         # MyDataManager.train_plant_detector(num_epochs=3)
-    #         sum_accuracy.append(MyDataManager.test_plant_detector(return_accuracy=True))
-    #         Loaded_data_dict = MyDataManager.data_dict
-    #         del MyDataManager
-    #     accuracy_NN.append(np.mean(sum_accuracy))
-    # print(accuracy_NN)
-
-    accuracy_NN = [np.float64(100.0), np.float64(99.2560975609756), np.float64(89.26666666666667), np.float64(92.60956790123456), np.float64(92.708885479672), np.float64(86.85681818181817), np.float64(81.99332858975608), np.float64(85.99078540590638), np.float64(89.38433243544735), np.float64(89.43931396171963), np.float64(84.80928255340828), np.float64(88.78736053901918), np.float64(90.45224508955985), np.float64(89.98757380758937), np.float64(88.9289277426837), np.float64(89.94766112574332), np.float64(89.1550713712729), np.float64(90.79045922762613), np.float64(92.1112851028291), np.float64(89.52978056426333)]
-    accuracy_fit_mean = [np.float64(100.0), np.float64(91.848968331081), np.float64(88.02206978879114), np.float64(84.1692104260871), np.float64(82.07475183456529), np.float64(78.36975368052478), np.float64(77.87573437371694), np.float64(75.52681093884098), np.float64(72.42503440544938), np.float64(71.97732384827768), np.float64(72.44295844301737), np.float64(70.16321629294151), np.float64(70.70338892546624), np.float64(69.35790727507292), np.float64(68.72889897196383), np.float64(67.30563177739639), np.float64(66.79756944256683), np.float64(66.06421356273192), np.float64(65.3292203935755), np.float64(64.86466165413535)]
-    nb_de_plante_dans_le_dataset = list(range(1, len(accuracy_NN) + 1))
-
-
+    accuracy_NN = []
+    Loaded_data_dict = 'No'
+    # for nb_de_plante in [3]:
+    for nb_de_plante in nb_de_plante_dans_le_dataset:
+        print(f'Testing for {nb_de_plante} plants')
+        sum_accuracy = []
+        for test_nb in range(100):
+            print(f'Test {test_nb}/10 ({nb_de_plante} plants in dataset)')
+            random_values = random.sample(list(range(0,len(plant_names))), nb_de_plante) #Choisi des plante au hasard dans le set
+            MyDataManager = PlantDataManager([Plant_Folders[i] for i in random_values], [plant_names[i] for i in random_values], Background_Folder, Loaded_data_dict=Loaded_data_dict)
+            MyDataManager.train_plant_detector(num_epochs=50*nb_de_plante)
+            # MyDataManager.train_plant_detector(num_epochs=3)
+            sum_accuracy.append(MyDataManager.test_plant_detector(return_accuracy=True))
+            Loaded_data_dict = MyDataManager.data_dict
+            del MyDataManager
+        accuracy_NN.append(np.mean(sum_accuracy))
+    print([round(float(N), 3) for N in accuracy_NN])
+    
+    # accuracy_NN = [100.0, 99.256, 89.267, 92.61, 92.709, 86.857, 81.993, 85.991, 89.384, 89.439, 84.809, 88.787, 90.452, 89.988, 88.929, 89.948, 89.155, 90.79, 92.111, 89.53]#10 fois 100 300
+    # accuracy_NN = [100.0, 96.667, 94.644, 87.842, 74.352, 77.93, 78.581, 83.816, 78.852, 88.812, 89.708, 78.706, 87.17, 83.84, 87.857, 83.116, 89.59, 83.824, 89.218, 86.117]#10 fois 100
+    accuracy_NN = [100.0, 98.154, 91.325, 87.268, 82.861, 81.841, 85.268, 86.253, 82.322, 82.646, 84.962, 85.561, 84.814, 85.022, 85.184, 85.767, 87.808, 86.782, 86.381, 87.553]#100 fois 100
+    accuracy_fit_mean = [100.0, 91.849, 88.022, 84.169, 82.075, 78.37, 77.876, 75.527, 72.425, 71.977, 72.443, 70.163, 70.703, 69.358, 68.729, 67.306, 66.798, 66.064, 65.329, 64.865]
     # Create the plot
     plt.figure(figsize=(8, 5))
-    plt.plot(nb_de_plante_dans_le_dataset, accuracy_NN, marker='o', linestyle='-', label='accuracy_NN')
-    plt.plot(nb_de_plante_dans_le_dataset, accuracy_fit_mean, marker='o', linestyle='-', label='accuracy_fit_mean')
-    plt.xlabel("Nombre de plantes dans le dataset", fontsize=25)
+    plt.plot(nb_de_plante_dans_le_dataset[0:len(accuracy_NN)], accuracy_NN, marker='o', linestyle='-', label='Précision FCN')
+    plt.plot(nb_de_plante_dans_le_dataset[0:len(accuracy_fit_mean)], accuracy_fit_mean, marker='o', linestyle='-', label='Précision NCC')
+    plt.xlabel("Nombre de plantes dans l'ensemble de données", fontsize=25)
     plt.ylabel("Précision (%)", fontsize=25)
     plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
     plt.xticks(range(min(nb_de_plante_dans_le_dataset), max(nb_de_plante_dans_le_dataset) + 1, 1))
@@ -437,7 +459,6 @@ def main():
     plt.show()
 
     # MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
-
     # MyDataManager.train_plant_detector(num_epochs=1000, show_progress=True)
     # MyDataManager.test_plant_detector(all_accuracy=True)
     # MyDataManager.show_data_with_weights()
