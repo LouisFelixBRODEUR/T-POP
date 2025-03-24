@@ -142,7 +142,7 @@ X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 def evaluer_modele_rf_variants(X, y, nb_plantes, 
-                               repetitions=5, 
+                               repetitions=10, 
                                test_size=0.25, 
                                n_components_pca=50, 
                                n_components_pls=30,
