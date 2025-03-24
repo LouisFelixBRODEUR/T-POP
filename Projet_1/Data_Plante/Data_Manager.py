@@ -18,6 +18,7 @@ import itertools
 import torch.nn.init as init
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from matplotlib.colors import Normalize
+from matplotlib.colors import LinearSegmentedColormap
 
 
 class PlantDataManager:
@@ -346,9 +347,15 @@ class PlantDataManager:
         # Plot spectral data
         num_plants = len(self.data_folders)
         norm = Normalize(vmin=0, vmax=num_plants - 1)
+
         colormap = plt.get_cmap('tab20', num_plants) # hsv tab20 cubehelix gist_ncar
+        # cmap = plt.get_cmap('tab20')
+        # dark_cmap = LinearSegmentedColormap.from_list('dark_tab20', [cmap(i) for i in range(0, 20, 2)], N=20)
+        # colormap = dark_cmap
+
         for i, folder in enumerate(self.data_folders):
             color = colormap(norm(i))  # Ensure unique colors
+            color = tuple(c * 0.8 for c in color[:3]) + (color[3],)
             data = np.mean(self.Prepare_data(folder), axis=0)  # Averaged spectral data per plant
             plt.plot(self.Wavelength_bins_for_plot, data, label=self.data_label[i], color=color)
 
@@ -364,13 +371,13 @@ class PlantDataManager:
         plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
         # plt.legend(loc = 'lower right', fontsize=10)
 
-        plt.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=15)
+        plt.legend(loc='upper left', bbox_to_anchor=(0.99, 1.01), fontsize=19)
         plt.tight_layout()
         plt.subplots_adjust(
             top=0.985,
             bottom=0.08,
             left=0.055,
-            right=0.77)
+            right=0.71)
 
         plt.autoscale(enable=True, axis='both', tight=True)
 
@@ -466,56 +473,68 @@ def main():
         'Ficus alii',
         'Specialty aglaonema']
     
-    Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
-    # nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
+    # mode = 'train_20'
+    # mode = 'train_20_saved'
+    mode = 'tain_show_weight'
+    # mode = 'show_data_graph'
+    # mode = 'show_source_graph'
 
-    # accuracy_NN = []
-    # Loaded_data_dict = 'No'
-    # # for nb_de_plante in [3]:
-    # for nb_de_plante in nb_de_plante_dans_le_dataset:
-    #     print(f'Testing for {nb_de_plante} plants')
-    #     sum_accuracy = []
-    #     for test_nb in range(100):
-    #         print(f'Test {test_nb}/10 ({nb_de_plante} plants in dataset)')
-    #         random_values = random.sample(list(range(0,len(plant_names))), nb_de_plante) #Choisi des plante au hasard dans le set
-    #         MyDataManager = PlantDataManager([Plant_Folders[i] for i in random_values], [plant_names[i] for i in random_values], Background_Folder, Loaded_data_dict=Loaded_data_dict)
-    #         MyDataManager.train_plant_detector(num_epochs=50*nb_de_plante)
-    #         # MyDataManager.train_plant_detector(num_epochs=3)
-    #         sum_accuracy.append(MyDataManager.test_plant_detector(return_accuracy=True))
-    #         Loaded_data_dict = MyDataManager.data_dict
-    #         del MyDataManager
-    #     accuracy_NN.append(np.mean(sum_accuracy))
-    # print([round(float(N), 3) for N in accuracy_NN])
+    Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
+    nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
+
+    if mode == 'train_20':
+        accuracy_NN = []
+        Loaded_data_dict = 'No'
+        # for nb_de_plante in [3]:
+        for nb_de_plante in nb_de_plante_dans_le_dataset:
+            print(f'Testing for {nb_de_plante} plants')
+            sum_accuracy = []
+            for test_nb in range(100):
+                print(f'Test {test_nb}/10 ({nb_de_plante} plants in dataset)')
+                random_values = random.sample(list(range(0,len(plant_names))), nb_de_plante) #Choisi des plante au hasard dans le set
+                MyDataManager = PlantDataManager([Plant_Folders[i] for i in random_values], [plant_names[i] for i in random_values], Background_Folder, Loaded_data_dict=Loaded_data_dict)
+                MyDataManager.train_plant_detector(num_epochs=50*nb_de_plante)
+                # MyDataManager.train_plant_detector(num_epochs=3)
+                sum_accuracy.append(MyDataManager.test_plant_detector(return_accuracy=True))
+                Loaded_data_dict = MyDataManager.data_dict
+                del MyDataManager
+            accuracy_NN.append(np.mean(sum_accuracy))
+        print([round(float(N), 3) for N in accuracy_NN])
     
-    # # accuracy_NN = [100.0, 99.256, 89.267, 92.61, 92.709, 86.857, 81.993, 85.991, 89.384, 89.439, 84.809, 88.787, 90.452, 89.988, 88.929, 89.948, 89.155, 90.79, 92.111, 89.53]#10 fois 100 300
-    # # accuracy_NN = [100.0, 96.667, 94.644, 87.842, 74.352, 77.93, 78.581, 83.816, 78.852, 88.812, 89.708, 78.706, 87.17, 83.84, 87.857, 83.116, 89.59, 83.824, 89.218, 86.117]#10 fois 100
-    # accuracy_NN = [100.0, 98.154, 91.325, 87.268, 82.861, 81.841, 85.268, 86.253, 82.322, 82.646, 84.962, 85.561, 84.814, 85.022, 85.184, 85.767, 87.808, 86.782, 86.381, 87.553]#100 fois 100
-    # accuracy_fit_mean = [100.0, 91.849, 88.022, 84.169, 82.075, 78.37, 77.876, 75.527, 72.425, 71.977, 72.443, 70.163, 70.703, 69.358, 68.729, 67.306, 66.798, 66.064, 65.329, 64.865]
-    # # Create the plot
-    # plt.figure(figsize=(8, 5))
-    # plt.plot(nb_de_plante_dans_le_dataset[0:len(accuracy_NN)], accuracy_NN, marker='o', linestyle='-', label='Précision FCN')
-    # plt.plot(nb_de_plante_dans_le_dataset[0:len(accuracy_fit_mean)], accuracy_fit_mean, marker='o', linestyle='-', label='Précision NCC')
-    # plt.xlabel("Nombre de plantes dans l'ensemble de données", fontsize=25)
-    # plt.ylabel("Précision (%)", fontsize=25)
-    # plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
-    # plt.xticks(range(min(nb_de_plante_dans_le_dataset), max(nb_de_plante_dans_le_dataset) + 1, 1))
-    # plt.legend(loc='lower left', fontsize=15)
-    # plt.tight_layout()
-    # plt.subplots_adjust(
-    #     top=0.995,
-    #     bottom=0.085,
-    #     left=0.06,
-    #     right=0.995)
-    # plt.grid(True)
-    # plt.show()
+    if mode == 'train_20_saved':
+        # accuracy_NN = [100.0, 99.256, 89.267, 92.61, 92.709, 86.857, 81.993, 85.991, 89.384, 89.439, 84.809, 88.787, 90.452, 89.988, 88.929, 89.948, 89.155, 90.79, 92.111, 89.53]#10 fois 100 300
+        # accuracy_NN = [100.0, 96.667, 94.644, 87.842, 74.352, 77.93, 78.581, 83.816, 78.852, 88.812, 89.708, 78.706, 87.17, 83.84, 87.857, 83.116, 89.59, 83.824, 89.218, 86.117]#10 fois 100
+        accuracy_NN = [100.0, 98.154, 91.325, 87.268, 82.861, 81.841, 85.268, 86.253, 82.322, 82.646, 84.962, 85.561, 84.814, 85.022, 85.184, 85.767, 87.808, 86.782, 86.381, 87.553]#100 fois 100
+    if mode == 'train_20_saved' or mode == 'train_20':
+        accuracy_fit_mean = [100.0, 91.849, 88.022, 84.169, 82.075, 78.37, 77.876, 75.527, 72.425, 71.977, 72.443, 70.163, 70.703, 69.358, 68.729, 67.306, 66.798, 66.064, 65.329, 64.865]
+        # Create the plot
+        plt.figure(figsize=(8, 5))
+        plt.plot(nb_de_plante_dans_le_dataset[0:len(accuracy_NN)], accuracy_NN, marker='o', linestyle='-', label='Précision FCN')
+        plt.plot(nb_de_plante_dans_le_dataset[0:len(accuracy_fit_mean)], accuracy_fit_mean, marker='o', linestyle='-', label='Précision NCC')
+        plt.xlabel("Nombre de plantes dans l'ensemble de données", fontsize=25)
+        plt.ylabel("Précision (%)", fontsize=25)
+        plt.gca().axes.tick_params(axis='both', which='major', labelsize=20)
+        plt.xticks(range(min(nb_de_plante_dans_le_dataset), max(nb_de_plante_dans_le_dataset) + 1, 1))
+        plt.legend(loc='lower left', fontsize=25)
+        plt.tight_layout()
+        plt.subplots_adjust(
+            top=0.995,
+            bottom=0.085,
+            left=0.06,
+            right=0.995)
+        plt.grid(True)
+        plt.show()
 
     MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
-    # MyDataManager.train_plant_detector(num_epochs=1000, show_progress=True)
-    # MyDataManager.test_plant_detector(all_accuracy=True)
-    # MyDataManager.show_data_with_weights()
+    if mode == 'tain_show_weight':
+        MyDataManager.train_plant_detector(num_epochs=1000, show_progress=False)
+        MyDataManager.test_plant_detector(all_accuracy=False)
+        MyDataManager.show_data_with_weights()
 
-    # MyDataManager.show_data(graph_type='all', show_source=True)
-    MyDataManager.show_source()
+    if mode == 'show_data_graph':
+        MyDataManager.show_data(graph_type='all', show_source=True)
+    if mode == 'show_source_graph':
+        MyDataManager.show_source()
 
 if __name__ == "__main__":
     main()
