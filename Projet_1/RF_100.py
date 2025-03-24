@@ -144,9 +144,9 @@ X_test_scaled = scaler.transform(X_test)
 def evaluer_modele_rf_variants(X, y, nb_plantes, 
                                repetitions=5, 
                                test_size=0.25, 
-                               n_components_pca=10, 
-                               n_components_pls=10,
-                               random_state=42):
+                               n_components_pca=50, 
+                               n_components_pls=30,
+                               random_state=60):
     """
     Sélectionne aléatoirement nb_plantes parmi les labels uniques de y,
     filtre X et y pour ces plantes, sépare en train/test, entraîne et
