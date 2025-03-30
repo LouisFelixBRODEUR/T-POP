@@ -12,6 +12,8 @@ from sklearn.metrics import make_scorer, accuracy_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.utils import shuffle
+from sklearn.preprocessing import OneHotEncoder
+
 
 # Fonctions pour importer et préparer tes données
 def get_wavelength_data(base_dir):
@@ -134,7 +136,7 @@ y_encoded = le.fit_transform(y)
 X_uniform, y_uniform = uniform_sample_scans(X, y_encoded, n_scans=100)
 
 # Split des données sur les scans uniformisés
-X_train, X_test, y_train, y_test = train_test_split(X_uniform, y_uniform, test_size=0.25, random_state=42, stratify=y_uniform)
+X_train, X_test, y_train, y_test = train_test_split(X_uniform, y_uniform, test_size=0.25, random_state=60, stratify=y_uniform)
 
 # Standardisation
 scaler = StandardScaler()
@@ -142,7 +144,7 @@ X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 def evaluer_modele_rf_variants(X, y, nb_plantes, 
-                               repetitions=10, 
+                               repetitions=100, 
                                test_size=0.25, 
                                n_components_pca=50, 
                                n_components_pls=30,
@@ -226,8 +228,12 @@ def evaluer_modele_rf_variants(X, y, nb_plantes,
         acc_pca = accuracy_score(y_test, y_pred_pca)
         
         # 3) PLS + Random Forest
+        
+        ohe = OneHotEncoder(sparse_output=False)
+        y_train_ohe = ohe.fit_transform(y_train.reshape(-1, 1))
+        
         pls = PLSRegression(n_components=n_components_pls)
-        pls.fit(X_train_scaled, y_train)
+        pls.fit(X_train_scaled, y_train_ohe)
         X_train_pls = pls.transform(X_train_scaled)
         X_test_pls  = pls.transform(X_test_scaled)
         
@@ -246,7 +252,7 @@ def evaluer_modele_rf_variants(X, y, nb_plantes,
         np.mean(acc_pls_list)
     )
 
-def graphique_precision_rf_variants(X, y, max_plantes, repetitions=5, test_size=0.25):
+def graphique_precision_rf_variants(X, y, max_plantes, repetitions=100, test_size=0.25):
     """
     Trace la précision (accuracy) de 3 variantes de Random Forest 
     (RF simple, RF+PCA, RF+PLS) en fonction du nombre de plantes (classes) 
@@ -300,6 +306,6 @@ def graphique_precision_rf_variants(X, y, max_plantes, repetitions=5, test_size=
 
 # Appel final : tester jusqu’à 20 plantes avec 5 répétitions pour chaque configuration.
 max_plantes = 20  
-repetitions = 5
+repetitions = 100
 
 graphique_precision_rf_variants(X, y_encoded, max_plantes=max_plantes, repetitions=repetitions)

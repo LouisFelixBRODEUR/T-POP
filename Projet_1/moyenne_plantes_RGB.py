@@ -80,28 +80,11 @@ def classifier_par_correlation(x_sample, references):
 
 # Chargement des données
 base_dir = os.path.dirname(os.path.abspath(__file__))
-background_folder = os.path.join(base_dir, "Data_Plante", "Session3", "Background_7ms_feuille_blanche")
+background_folder = os.path.join(base_dir, "Data_Plante", "Session2", "Background_30ms_feuille_blanche")
 plante_folder_paths = [
-    os.path.join(base_dir,"Data_Plante", "Session3", "Scindapsus_aureus_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session3", "Kalanchoe_daigremontianum_30ms"),
-    os.path.join(base_dir,"Data_Plante", "Session3", "Dieffenbachia_seguine_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session3", "Dracaena_fragrans_10ms"),
-    os.path.join(base_dir,"Data_Plante", "Session3", "Tradescantia_spathacea_top_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session3", "Tradescantia_spathacea_bot_25ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Euphorbia_milii_50ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Pachypodium_rosulatum_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Monstera_deliciosa_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Ficus_lyrata_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Begonia_gryphon_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Iresine_herbstii_50ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Spathiphyllum_cochlearispathum_35ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Philodendron_atabapoense_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Oldenlandia_affinis_20ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Dracaena_fragrans_30ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Dracaena_trifasciata_10ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Philodendron_melanochrysum_10ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Ficus_alii_40ms"),
-    os.path.join(base_dir,"Data_Plante", "Session4", "Specialty_aglaonema_20ms")
+    os.path.join(base_dir,"Data_Plante", "Session2", "Kalanchoe_daigremontianum_100ms"),
+    os.path.join(base_dir,"Data_Plante", "Session2", "Scindapsus_aureus_100ms")
+    
 ]
 
 X, y = load_data(plante_folder_paths, background_folder)
@@ -167,4 +150,4 @@ def graphique_precision(X, y, max_plantes, repetitions=5):
 # accuracy_moyenne, accuracy_std = evaluer_modele(X_scaled, y_encoded, nb_plantes=20, repetitions=10, afficher_confusion=True)
 
 # Affichage du graphique de précision (sans matrices de confusion supplémentaires)
-graphique_precision(X_scaled, y_encoded, max_plantes=2, repetitions=10)
+graphique_precision(X_scaled, y_encoded, max_plantes=2, repetitions=20)
