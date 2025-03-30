@@ -65,8 +65,8 @@ class PlantDataManager:
         # range de nanometre a analyser
         # Cap_low, Cap_high = 300, 840
         # Cap_low, Cap_high = 645, 735 
+        # Cap_low, Cap_high = 420, 700
         Cap_low, Cap_high = 420, 800
-        # Cap_low, Cap_high = 435, 800
         low_index = np.argmin(np.abs(self.Wavelength_bins_for_plot - Cap_low))
         high_index = np.argmin(np.abs(self.Wavelength_bins_for_plot - Cap_high))
 
@@ -457,7 +457,7 @@ def main():
         'Dieffenbachia seguine',
         'Dracaena fragrans',
         'Tradescantia spathacea (dessus)',
-        'Tradescantia_spathacea (dessous)',
+        'Tradescantia spathacea (dessous)',
         'Euphorbia milii',
         'Pachypodium rosulatum',
         'Monstera deliciosa',
@@ -475,9 +475,11 @@ def main():
     
     # mode = 'train_20'
     # mode = 'train_20_saved'
-    mode = 'tain_show_weight'
+    mode = 'train_show_weight'
     # mode = 'show_data_graph'
     # mode = 'show_source_graph'
+    # mode = '2_plantes_blanc'
+    # mode = '2_plantes_RGB'
 
     Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Background_7ms_feuille_blanche\\"
     nb_de_plante_dans_le_dataset = list(range(1, len(plant_names) + 1))
@@ -500,7 +502,7 @@ def main():
                 del MyDataManager
             accuracy_NN.append(np.mean(sum_accuracy))
         print([round(float(N), 3) for N in accuracy_NN])
-    
+
     if mode == 'train_20_saved':
         # accuracy_NN = [100.0, 99.256, 89.267, 92.61, 92.709, 86.857, 81.993, 85.991, 89.384, 89.439, 84.809, 88.787, 90.452, 89.988, 88.929, 89.948, 89.155, 90.79, 92.111, 89.53]#10 fois 100 300
         # accuracy_NN = [100.0, 96.667, 94.644, 87.842, 74.352, 77.93, 78.581, 83.816, 78.852, 88.812, 89.708, 78.706, 87.17, 83.84, 87.857, 83.116, 89.59, 83.824, 89.218, 86.117]#10 fois 100
@@ -526,8 +528,8 @@ def main():
         plt.show()
 
     MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
-    if mode == 'tain_show_weight':
-        MyDataManager.train_plant_detector(num_epochs=1000, show_progress=False)
+    if mode == 'train_show_weight':
+        MyDataManager.train_plant_detector(num_epochs=1000, show_progress=True)
         MyDataManager.test_plant_detector(all_accuracy=False)
         MyDataManager.show_data_with_weights()
 
@@ -535,6 +537,29 @@ def main():
         MyDataManager.show_data(graph_type='all', show_source=True)
     if mode == 'show_source_graph':
         MyDataManager.show_source()
+    if mode == '2_plantes_RGB':
+        Plant_Folders = [
+            os.path.dirname(os.path.abspath(__file__)) +"\\Session2\\Scindapsus_aureus_100ms\\",
+            os.path.dirname(os.path.abspath(__file__)) +"\\Session2\\Kalanchoe_daigremontianum_100ms\\"]
+        plant_names = [
+            'Scindapsus aureus',
+            'Kalanchoe daigremontianum']
+        Background_Folder = os.path.dirname(os.path.abspath(__file__)) +"\\Session2\\Background_30ms_feuille_blanche\\"
+        MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
+        MyDataManager.train_plant_detector(num_epochs=70, show_progress=True)
+        MyDataManager.test_plant_detector(all_accuracy=False)
+        MyDataManager.show_data_with_weights()
+    if mode == '2_plantes_blanc':
+        Plant_Folders = [
+            os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Scindapsus_aureus_20ms\\",
+            os.path.dirname(os.path.abspath(__file__)) +"\\Session3\\Kalanchoe_daigremontianum_30ms\\"]
+        plant_names = [
+            'Scindapsus aureus',
+            'Kalanchoe daigremontianum']
+        MyDataManager = PlantDataManager(Plant_Folders, plant_names, Background_Folder)
+        MyDataManager.train_plant_detector(num_epochs=70, show_progress=True)
+        MyDataManager.test_plant_detector(all_accuracy=False)
+        MyDataManager.show_data_with_weights()
 
 if __name__ == "__main__":
     main()
