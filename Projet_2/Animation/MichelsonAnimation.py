@@ -41,7 +41,7 @@ class MichelsonInterferometer(Scene):
         
         # Labels
         components = VGroup(
-            Text("Beam Splitter").next_to(beam_splitter, DOWN + RIGHT, buff=0.1).scale(0.5).shift(LEFT * 1),
+            Text("Beam Splitter").next_to(beam_splitter, UP + RIGHT, buff=0.1).scale(0.5).shift(LEFT * 1.1+ DOWN * 0.3),
             Text("Miroir fixe").next_to(mirror1, UP, buff=0.1).scale(0.5),
             Text("Miroir mobile").next_to(mirror2, UP, buff=0.1).scale(0.5),
             Text("Détecteur").next_to(detector, DOWN, buff=0.1).scale(0.5),
@@ -51,13 +51,13 @@ class MichelsonInterferometer(Scene):
         # Time counter for phase animation
         time = ValueTracker(0)
         
-        # Create rolling time graph on the right side of the detector
+        # graph on the right side of the detector
         graph_origin = detector.get_right() + RIGHT * 2.3
         graph_width = 4
         graph_height = 2
         graph_axes = Axes(
             x_range=[0, 10, 1],
-            y_range=[0, 4, 0.5],  # Adjusted y-range for intensity
+            y_range=[0, 4, 0.5],
             x_length=graph_width,
             y_length=graph_height,
             axis_config={"color": WHITE},
