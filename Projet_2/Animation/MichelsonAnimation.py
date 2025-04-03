@@ -24,12 +24,12 @@ class MichelsonInterferometer(Scene):
         mirror1 = Rectangle(width=0.1, height=1, color=WHITE, fill_opacity=0.7, 
                            stroke_width=2).shift(UP * 2 + LEFT * 2).rotate(PI/2)
         mirror2 = Rectangle(width=0.1, height=1, color=WHITE, fill_opacity=0.7, 
-                           stroke_width=2).shift(RIGHT * 2)
+                           stroke_width=2).shift(RIGHT * 1)  # Changed from RIGHT * 2 to RIGHT * 1
         mirror_motion = ValueTracker(0)
-        mirror2.add_updater(lambda m: m.move_to(RIGHT * (2 + 0.2 * np.sin(3 * mirror_motion.get_value()))))
+        mirror2.add_updater(lambda m: m.move_to(RIGHT * (1 + 0.2 * np.sin(3 * mirror_motion.get_value()))))
         
         # Speaker icon
-        speaker = SVGMobject("speaker.svg").scale(0.3).set_color(WHITE).next_to(mirror2, RIGHT*2, buff=0.2)
+        speaker = SVGMobject("speaker.svg").scale(0.3).set_color(WHITE).next_to(mirror2, RIGHT, buff=0.2).shift(RIGHT * 0.2)
 
         # Detector
         detector = Square(side_length=1, color=GREEN, fill_opacity=0.3, 
