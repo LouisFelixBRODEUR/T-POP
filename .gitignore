@@ -5,3 +5,6 @@ __pycache__/
 # Ignore mnist CSV files
 mnist_test.csv
 mnist_train.csv
+
+# Ignore mp4 animation files
+media/
