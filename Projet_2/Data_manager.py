@@ -12,6 +12,8 @@ import os
 import re
 import scipy.signal as sgnl
 import time
+import scipy.io.wavfile as wav
+from scipy.ndimage import maximum_filter1d, minimum_filter1d
 
 def choose_file(file_type=None):
     if file_type == 'wav':
@@ -47,17 +49,59 @@ def plot_waveform(time_raw, samples):
     plt.grid(True)
     plt.show()
 
+def plot_data(signal):
+    plt.figure(figsize=(10, 5))
+    plt.plot(signal)
+    plt.xlabel('Samples')
+    plt.ylabel('Signal')
+    plt.grid(True)
+    plt.title("Signal Plot")
+    plt.show()
+
+# def local_maximum(signal, range_for_max):
+#     local_max = []
+#     for i in range(len(signal)):
+#         local_max.append(np.max(signal[max(i-range_for_max,0):min(i+range_for_max,len(signal))]))
+#     return np.array(local_max)
+# def local_minimum(signal, range_for_min):
+#     local_min = []
+#     for i in range(len(signal)):
+#         local_min.append(np.min(signal[max(i-range_for_min,0):min(i+range_for_min,len(signal))]))
+#     return np.array(local_min)
+
+
+def local_maximum(signal, range_for_max):
+    return maximum_filter1d(signal, size=2*range_for_max+1, mode='nearest')
+
+def local_minimum(signal, range_for_min):
+    return minimum_filter1d(signal, size=2*range_for_min+1, mode='nearest')
+
 def extract_sound_from_detector_response(detector_response):
     detector_response = np.array(detector_response)
+    # return detector_response-np.mean(detector_response)
+
     I_avg_max = np.max(detector_response)
     I_avg_min = np.min(detector_response)
     A_param = (np.sqrt(I_avg_max)+np.sqrt(I_avg_min))/np.sqrt(2)
     B_param = (np.sqrt(I_avg_max)-np.sqrt(I_avg_min))/np.sqrt(2)
-    signal = (2*detector_response-A_param**2-B_param**2)/(2*A_param*B_param)
-    signal  = np.arccos(np.clip(signal, -1, 1))
+    
+    # I_avg_max = local_maximum(detector_response, 100000)
+    # I_avg_min = local_minimum(detector_response, 100000)
+    # A_param = (np.sqrt(I_avg_max)+np.sqrt(I_avg_min))/np.sqrt(2)
+    # B_param = (np.sqrt(I_avg_max)-np.sqrt(I_avg_min))/np.sqrt(2)
+
+    signal = detector_response
+    plot_data(signal)
+    signal = (2*signal-A_param**2-B_param**2)/(2*A_param*B_param)
+    plot_data(signal)
+    signal = np.clip(signal, -1, 1)
+    plot_data(signal)
+    signal = np.arccos(signal)
+    plot_data(signal)
     signal = np.diff(signal)
-    signal = abs(signal)
-    signal = convolve(signal, 10)
+    plot_data(signal)
+
+    signal = abs(signal) #Degrade la qualite du son
     return signal
 
 def convolve(signal, size=5):
@@ -113,50 +157,124 @@ def choose_folder():
     folder_path = filedialog.askdirectory(title="Select a Folder Containing CSV Files")
     return folder_path
 
+def plot_fourier_transform(time_raw, signal):
+    # Compute the sampling rate
+    dt = np.mean(np.diff(time_raw))  # Time step
+    fs = 1 / dt  # Sampling frequency
+    
+    # Compute the Fourier Transform
+    freq = np.fft.fftfreq(len(signal), d=dt)
+    fft_values = np.fft.fft(signal)
+    
+    # Plot the magnitude spectrum
+    plt.figure(figsize=(10, 5))
+    plt.plot(freq[:len(freq)//2], np.abs(fft_values[:len(freq)//2]))  # Plot only positive frequencies
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Magnitude")
+    plt.title("Fourier Transform of the Signal")
+    plt.grid()
+    plt.show()
+
+def filter_fourier_transform(time_raw, signal, a, b):
+    # Compute the sampling rate
+    dt = np.mean(np.diff(time_raw))
+    
+    # Compute the Fourier Transform
+    freq = np.fft.fftfreq(len(signal), d=dt)
+    fft_values = np.fft.fft(signal)
+    
+    # Apply frequency filtering
+    filtered_fft = np.where((freq >= a) & (freq <= b), fft_values, 0)
+    
+    # Inverse Fourier Transform to get back the filtered signal
+    filtered_signal = np.fft.ifft(filtered_fft)
+    
+    return np.real(filtered_signal)  # Return only real values
+
+def save_as_wav(time_raw, signal):
+    filename = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
+    
+    if not filename:
+        print("Saving canceled.")
+        return
+    
+    # Compute the sampling rate
+    dt = np.mean(np.diff(time_raw))
+    fs = int(1 / dt)  # Convert to integer
+    
+    # Normalize the signal
+    signal_normalized = np.int16(signal / np.max(np.abs(signal)) * 32767)
+    
+    # Save as WAV file
+    wav.write(filename, fs, signal_normalized)
+    print(f"File saved as {filename}")
+
 def loop_trough_data_view_and_hear():
-    folder_path = choose_folder()
+    # folder_path = choose_folder()
+    folder_path = 'C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session3\\Test6'
     csv_files = glob.glob(os.path.join(folder_path, "*.csv"))
     pattern = r"(\d+Hz)(\d+Vpp).*_(\w+)\.csv"
     for file_path in csv_files:
         match = re.search(pattern, file_path.split("\\")[-1])
-        frequency = match.group(1)  # '100Hz'
-        voltage = match.group(2)    # '10Vpp'
-        file_type = match.group(3)  # 'HighRes'
-        title = f"{frequency} {voltage} {file_type}"
-        if file_type == 'HighRes':
-            # time_raw, mesure_raw = chose_data()
+        if match:
+            frequency = match.group(1)  # '100Hz'
+            voltage = match.group(2)    # '10Vpp'
+            file_type = match.group(3)  # 'HighRes'
+            title = f"{frequency} {voltage} {file_type}"
+        else:
+            title = file_path.split("\\")[-1]
+        # if file_type == 'HighRes':
+        if 1:
+        # if '10Vpp' in title:
             time_raw, mesure_raw = load_data_from_csv(file_path)
+            # mesure_raw = convolve(mesure_raw, size=10)
             signal = extract_sound_from_detector_response(mesure_raw)
-            signal = signal[2:-2]
+            # signal = signal[2:-2]
 
+            # plt.figure(figsize=(10, 5))
 
-            plt.figure(figsize=(10, 5))
+            # plt.plot(time_raw[0:len(signal)], signal/np.max(signal), label = 'Treated signal')
+            # plt.plot(time_raw, mesure_raw/np.max(mesure_raw), label = 'Mesure Raw', alpha=0.3)
+            # plt.title(title)
+            # plt.xlabel('Temps (s)')
+            # plt.ylabel('Signal')
+            # plt.grid(True)
+            # plt.legend()
+            # plt.show()
 
-            plt.plot(time_raw[0:len(signal)], signal/np.max(signal), label = 'Treated signal')
-            plt.plot(time_raw, mesure_raw/np.max(mesure_raw), label = 'Mesure Raw')
-            plt.title(title)
-            plt.xlabel('Temps (s)')
-            plt.ylabel('Signal')
-            plt.grid(True)
-            plt.legend()
-            plt.show()
+            # plot_fourier_transform(time_raw, signal)
+            plot_data(signal)
+            print(f'Filtering...')
+            # signal = convolve(signal, size=30)
+            signal = filter_fourier_transform(time_raw, signal, 75, 10000)
+            print(f'Done!')
+            # save_as_wav(time_raw, signal)
+            plot_data(signal)
+
 
             # REsample if too high
-            # max_samplerate = 44100
             max_samplerate = 192000
             samplerate = int(len(signal) / (time_raw[-1] - time_raw[0]))
+            # print(samplerate)
             if samplerate > max_samplerate:
                 num_samples = int(len(signal) * max_samplerate / samplerate)
                 signal = sgnl.resample(signal, num_samples)
                 samplerate = max_samplerate
 
-            # sd.play(signal, samplerate=samplerate)
-            # sd.wait()
+            # boost_factor = 5
+            # signal = np.clip(signal, -1.0, 1.0)
+            # signal = signal * boost_factor
 
-            # Loop for 1 second to hear better
-            sd.play(signal, samplerate=samplerate, loop=True)
-            time.sleep(1)
-            sd.stop()
+            print(f'Playing {title}')
+            sd.play(signal, samplerate=samplerate)
+            sd.wait()
+            print('Done!')
+
+
+            # # Loop for 1 second to hear better
+            # sd.play(signal, samplerate=samplerate, loop=True)
+            # time.sleep(1)
+            # sd.stop()
 
 
 loop_trough_data_view_and_hear()
