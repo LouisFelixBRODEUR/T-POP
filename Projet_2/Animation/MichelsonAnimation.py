@@ -6,9 +6,6 @@ import numpy as np
 # TO RENDER IN 4K:
 # $manim -p -qk <codename.py> MichelsonInterferometer
 
-# TODO ajouter titre de linstrument le Michelphone
-# TODO update gitignore to not take the videofiles(too large)
-
 class MichelsonInterferometer(Scene):
     def construct(self):
         # Constants
@@ -35,8 +32,6 @@ class MichelsonInterferometer(Scene):
         speaker = SVGMobject("speaker.svg").scale(0.3).set_color(WHITE).next_to(mirror2, RIGHT*2, buff=0.2)
 
         # Detector
-        # detector = ScreenRectangle(height=1.5, color=GREEN, fill_opacity=0.3, 
-        #                          stroke_width=2).shift(DOWN * 2 + LEFT * 2)
         detector = Square(side_length=1, color=GREEN, fill_opacity=0.3, 
                                  stroke_width=2).shift(DOWN * 2 + LEFT * 2)
         
@@ -55,6 +50,42 @@ class MichelsonInterferometer(Scene):
         
         # Time counter for phase animation
         time = ValueTracker(0)
+        
+        # Create rolling time graph on the right side of the detector
+        graph_origin = detector.get_right() + RIGHT * 3
+        graph_width = 4
+        graph_height = 2
+        graph_axes = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 2, 0.5],
+            x_length=graph_width,
+            y_length=graph_height,
+            axis_config={"color": WHITE},
+            tips=False,
+        ).move_to(graph_origin)
+        
+        # Graph parameters
+        A = 1
+        B = 1
+        f1 = 10
+        f2 = 1
+        
+        # Create the initial graph
+        graph = graph_axes.plot(
+            lambda t: A + B * np.cos(f1 * np.sin(f2 * t)),
+            x_range=[0, 10, 0.01],
+            color=YELLOW
+        )
+        
+        # Function to update the graph as it rolls
+        # def update_graph(mob, dt):
+        #     mob.become(graph_axes.plot(
+        #         lambda t: A + B * np.cos(f1 * np.sin(f2 * (t + time.get_value()))),
+        #         x_range=[0, 10, 0.01],
+        #         color=YELLOW
+        #     ))
+        
+        # graph.add_updater(update_graph)
         
         # Wave creation function
         def create_wave(start, end, initial_phase=0, vertical=False):
@@ -99,7 +130,6 @@ class MichelsonInterferometer(Scene):
             vertical=True
         )
 
-        
         # Moving mirror back to beam splitter (will be updated)
         beam5 = always_redraw(lambda: self.create_sine_wave(
             start=mirror2.get_left(),
@@ -175,8 +205,19 @@ class MichelsonInterferometer(Scene):
             ),
             run_time=2
         )
-        self.play(Create(interference_pattern),run_time=2)
-        self.play(mirror_motion.animate.increment_value(2 * PI), run_time=10, rate_func=linear)
+        self.play(Create(interference_pattern), run_time=2)
+        
+        # Add the graph after everything else is set up
+        self.play(
+            Create(graph_axes),
+            Create(graph)
+        )
+        
+        self.play(
+            mirror_motion.animate.increment_value(2 * PI),
+            run_time=10,
+            rate_func=linear
+        )
                 
     def create_sine_wave(self, start, end, phase=0, amplitude=0.2, wavelength=0.5, vertical=False):
         """Wave creation without arrows"""
