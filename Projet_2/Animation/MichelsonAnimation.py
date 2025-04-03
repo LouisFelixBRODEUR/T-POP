@@ -52,41 +52,18 @@ class MichelsonInterferometer(Scene):
         time = ValueTracker(0)
         
         # Create rolling time graph on the right side of the detector
-        graph_origin = detector.get_right() + RIGHT * 3
+        graph_origin = detector.get_right() + RIGHT * 2.3
         graph_width = 4
         graph_height = 2
         graph_axes = Axes(
             x_range=[0, 10, 1],
-            y_range=[0, 2, 0.5],
+            y_range=[0, 4, 0.5],  # Adjusted y-range for intensity
             x_length=graph_width,
             y_length=graph_height,
             axis_config={"color": WHITE},
             tips=False,
         ).move_to(graph_origin)
-        
-        # Graph parameters
-        A = 1
-        B = 1
-        f1 = 10
-        f2 = 1
-        
-        # Create the initial graph
-        graph = graph_axes.plot(
-            lambda t: A + B * np.cos(f1 * np.sin(f2 * t)),
-            x_range=[0, 10, 0.01],
-            color=YELLOW
-        )
-        
-        # Function to update the graph as it rolls
-        # def update_graph(mob, dt):
-        #     mob.become(graph_axes.plot(
-        #         lambda t: A + B * np.cos(f1 * np.sin(f2 * (t + time.get_value()))),
-        #         x_range=[0, 10, 0.01],
-        #         color=YELLOW
-        #     ))
-        
-        # graph.add_updater(update_graph)
-        
+
         # Wave creation function
         def create_wave(start, end, initial_phase=0, vertical=False):
             return always_redraw(lambda: self.create_sine_wave(
@@ -122,46 +99,62 @@ class MichelsonInterferometer(Scene):
             wavelength=WAVELENGTH,
         ))
 
+        # Calculate distances for phase continuity
+        k = 2 * PI / WAVELENGTH
+        distance_to_mirror1 = np.linalg.norm(mirror1.get_bottom() - beam_splitter.get_top())
+        distance_to_mirror2 = lambda: np.linalg.norm(mirror2.get_left() - beam_splitter.get_right())
+        distance_to_detector = np.linalg.norm(detector.get_top() - beam_splitter.get_bottom())
+
         # Mirrors back to beam splitter
         beam4 = create_wave(
             start=mirror1.get_bottom(),
             end=beam_splitter.get_top(),
-            initial_phase=-PI*3.15,
+            initial_phase=k * distance_to_mirror1,  # Phase accumulated going to mirror
             vertical=True
         )
 
         # Moving mirror back to beam splitter (will be updated)
-        beam5 = always_redraw(lambda: self.create_sine_wave(
-            start=mirror2.get_left(),
-            end=beam_splitter.get_right(),
-            phase=time.get_value() * PHASE_SHIFT_SPEED + PI,
-            amplitude=BEAM_AMPLITUDE,
-            wavelength=WAVELENGTH,
-            vertical=False
-        ))
+        beam5 = always_redraw(lambda: 
+            self.create_sine_wave(
+                start=mirror2.get_left(),
+                end=beam_splitter.get_right(),
+                phase=time.get_value() * PHASE_SHIFT_SPEED + k * distance_to_mirror2(),
+                amplitude=BEAM_AMPLITUDE,
+                wavelength=WAVELENGTH,
+                vertical=False
+            )
+        )
 
-        # Beam splitter to detector - first beam (static)
-        beam6 = create_wave(
-            start=beam_splitter.get_bottom(),
-            end=detector.get_top(),
-            initial_phase=0,
-            vertical=True
+        # Beam splitter to detector - first beam (from fixed mirror path)
+        beam6 = always_redraw(lambda: 
+            self.create_sine_wave(
+                start=beam_splitter.get_bottom(),
+                end=detector.get_top(),
+                phase=time.get_value() * PHASE_SHIFT_SPEED + k * (2 * distance_to_mirror1),  # Round trip to fixed mirror
+                amplitude=BEAM_AMPLITUDE,
+                wavelength=WAVELENGTH,
+                vertical=True
+            )
         )
         
-        # Beam splitter to detector - second beam (dynamic, responds to mirror)
-        beam7 = always_redraw(lambda: self.create_sine_wave(
-            start=beam_splitter.get_bottom(),
-            end=detector.get_top(),
-            phase=2 * np.sin(3 * mirror_motion.get_value()) + PI/2,  # Oscillating phase
-            amplitude=BEAM_AMPLITUDE,
-            wavelength=WAVELENGTH,
-            vertical=True
-        ))
+        # Beam splitter to detector - second beam (from moving mirror path)
+        beam7 = always_redraw(lambda: 
+            self.create_sine_wave(
+                start=beam_splitter.get_bottom(),
+                end=detector.get_top(),
+                phase=time.get_value() * PHASE_SHIFT_SPEED + k * (2 * distance_to_mirror2()) + PI/2,  # Round trip to moving mirror + π/2 phase shift from beam splitter
+                amplitude=BEAM_AMPLITUDE,
+                wavelength=WAVELENGTH,
+                vertical=True
+            )
+        )
 
-        # Clean circular interference pattern in red
-        interference_pattern = always_redraw(lambda: self.create_clean_circular_interference(
-            time.get_value() * PHASE_SHIFT_SPEED + mirror_motion.get_value() * 10,
-            detector
+        # Realistic interference pattern based on phase difference
+        interference_pattern = always_redraw(lambda: self.create_realistic_interference(
+            detector,
+            phase1=k * (2 * distance_to_mirror1),  # Phase from fixed mirror path
+            phase2=k * (2 * distance_to_mirror2()) + PI/2,  # Phase from moving mirror path
+            time_phase=time.get_value() * PHASE_SHIFT_SPEED
         ))
         
         # Animation sequence
@@ -207,10 +200,9 @@ class MichelsonInterferometer(Scene):
         )
         self.play(Create(interference_pattern), run_time=2)
         
-        # Add the graph after everything else is set up
+        # Add the graph
         self.play(
-            Create(graph_axes),
-            Create(graph)
+            Create(graph_axes)
         )
         
         self.play(
@@ -245,23 +237,40 @@ class MichelsonInterferometer(Scene):
             stroke_width=4
         )
     
-    def create_clean_circular_interference(self, phase, detector):
-        """Creates clean circular interference fringes in red"""
+    def create_realistic_interference(self, detector, phase1, phase2, time_phase, wavelength=0.5):
+        """Creates physically accurate interference pattern based on phase difference"""
         pattern = VGroup()
         max_radius = min(detector.width, detector.height)/2 - 0.2
+        center = detector.get_center()
+        k = 2 * PI / wavelength
         
-        # Create smooth circular fringes
-        for r in np.linspace(0.1, 1, 10):
-            radius = r * max_radius
-            # Intensity varies with radius and phase
-            intensity = (np.cos(phase + r*15)**2)
+        # Calculate the phase difference between the two beams
+        phase_diff = (phase2 - phase1) % (2*PI)
+        
+        # Create circular fringes with proper intensity distribution
+        for r in np.linspace(0, max_radius, 100):
+            # Intensity follows I = 4I₀cos²(Δφ/2)
+            # Where Δφ is the phase difference plus any radial dependence
+            # For circular fringes, we add a radial term to simulate the angular dependence
+            intensity = (np.cos((phase_diff + r*k*0.5)/2)**2)
             
-            circle = Circle(
-                radius=radius,
+            # Create a colored dot at this radius
+            dot = Dot(
+                point=center + RIGHT * r,
                 color=interpolate_color(DARK_GRAY, RED, intensity),
-                stroke_width=2 + 3*intensity
-            ).move_to(detector.get_center())
-            
-            pattern.add(circle)
+                radius=0.02
+            )
+            pattern.add(dot)
         
-        return pattern
+        # Create concentric circles for the full pattern
+        full_pattern = VGroup()
+        for dot in pattern:
+            circle = Circle(
+                radius=dot.get_center()[0] - center[0],
+                color=dot.get_color(),
+                stroke_width=2,
+                fill_opacity=0
+            ).move_to(center)
+            full_pattern.add(circle)
+        
+        return full_pattern
