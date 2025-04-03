@@ -7,4 +7,13 @@ mnist_test.csv
 mnist_train.csv
 
 # Ignore mp4 animation files
-media/
+Projet_2/Animation/media/
+
+
+# Ignore Files in session 3 data(only take the .7z)
+Projet_2/Session3/Test1/
+Projet_2/Session3/Test2/
+Projet_2/Session3/Test3/
+Projet_2/Session3/Test4/
+Projet_2/Session3/Test5/
+Projet_2/Session3/Test6/
