@@ -50,6 +50,7 @@ class MichelsonInterferometer(Scene):
         
         # Time counter for phase animation
         time = ValueTracker(0)
+        time_graph = ValueTracker(0)
         
         # graph on the right side of the detector
         graph_origin = detector.get_right() + RIGHT * 2.3
@@ -63,6 +64,13 @@ class MichelsonInterferometer(Scene):
             axis_config={"color": WHITE},
             tips=False,
         ).move_to(graph_origin)
+
+        # Graph line that will grow over time
+        graph_line = always_redraw(lambda: self.get_detector_signal(
+            graph_axes,
+            time_graph.get_value(),
+            mirror_motion.get_value()
+        ))
 
         # Wave creation function
         def create_wave(start, end, initial_phase=0, vertical=False):
@@ -204,8 +212,13 @@ class MichelsonInterferometer(Scene):
         self.play(
             Create(graph_axes)
         )
+
+        # Start the graph line empty
+        self.add(graph_line)
         
+  
         self.play(
+            time_graph.animate.increment_value(10),
             mirror_motion.animate.increment_value(2 * PI),
             run_time=10,
             rate_func=linear
@@ -274,3 +287,24 @@ class MichelsonInterferometer(Scene):
             full_pattern.add(circle)
         
         return full_pattern
+    
+    def get_detector_signal(self, axes, time, mirror_pos, wavelength=0.5):
+        """Returns the graph line showing the detector signal over time"""
+        # Create time points up to current time
+        max_time = min(time, axes.x_range[1])
+        t_values = np.linspace(0, max_time, int(max_time * 20 + 1))  # More points for smoother curve
+        
+        # Calculate corresponding y values based on mirror position
+        # Use the actual time-dependent mirror position for each point
+        y_values = 2 * (1 + np.cos(4 * PI * (0.2 * np.sin(3 * t_values)) / wavelength))
+        
+        # Create the line graph
+        graph = VMobject()
+        graph.set_points_smoothly([
+            axes.c2p(t, y) 
+            for t, y in zip(t_values, y_values)
+        ])
+        graph.set_color(GREEN)
+        graph.set_stroke(width=3)
+        
+        return graph

@@ -1,0 +1,6 @@
+# TO RUN THE CODE:
+# $manim -pql <codename.py> MichelsonInterferometer
+# TO RENDER IN 4K:
+# $manim -p -qk <codename.py> MichelsonInterferometer
+
+# TODO use from manim_slides import Slide for the presentation
