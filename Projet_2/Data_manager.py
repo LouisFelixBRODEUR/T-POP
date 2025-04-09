@@ -14,6 +14,7 @@ import scipy.signal as sgnl
 import time
 import scipy.io.wavfile as wav
 from scipy.ndimage import maximum_filter1d, minimum_filter1d
+from scipy.fft import fft, ifft, fftfreq
 
 def choose_file(file_type=None):
     if file_type == 'wav':
@@ -77,8 +78,10 @@ def local_minimum(signal, range_for_min):
     return minimum_filter1d(signal, size=2*range_for_min+1, mode='nearest')
 
 def extract_sound_from_detector_response(detector_response):
+    print('Extracting sound from detector response...')
     detector_response = np.array(detector_response)
-    # return detector_response-np.mean(detector_response)
+    print('Done!')
+    return detector_response-np.mean(detector_response)
 
     I_avg_max = np.max(detector_response)
     I_avg_min = np.min(detector_response)
@@ -91,17 +94,17 @@ def extract_sound_from_detector_response(detector_response):
     # B_param = (np.sqrt(I_avg_max)-np.sqrt(I_avg_min))/np.sqrt(2)
 
     signal = detector_response
-    plot_data(signal)
+    # plot_data(signal)
     signal = (2*signal-A_param**2-B_param**2)/(2*A_param*B_param)
-    plot_data(signal)
+    # plot_data(signal)
     signal = np.clip(signal, -1, 1)
-    plot_data(signal)
+    # plot_data(signal)
     signal = np.arccos(signal)
-    plot_data(signal)
+    # plot_data(signal)
     signal = np.diff(signal)
-    plot_data(signal)
+    # plot_data(signal)
 
-    signal = abs(signal) #Degrade la qualite du son
+    # signal = abs(signal) #Degrade la qualite du son
     return signal
 
 def convolve(signal, size=5):
@@ -114,6 +117,7 @@ def chose_data():
     return load_data_from_csv(file_path)
 
 def load_data_from_csv(file_path):
+    print(f'Opening file and loading data from {file_path}...')
     with open(file_path, "r") as file:
         lines = file.readlines()
 
@@ -134,6 +138,7 @@ def load_data_from_csv(file_path):
     else:
         data = time
         time = None
+    print('Done!')
 
     return time, data
 
@@ -192,6 +197,7 @@ def filter_fourier_transform(time_raw, signal, a, b):
     return np.real(filtered_signal)  # Return only real values
 
 def save_as_wav(time_raw, signal):
+    print(f'Saving as wav...')
     filename = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
     
     if not filename:
@@ -209,9 +215,38 @@ def save_as_wav(time_raw, signal):
     wav.write(filename, fs, signal_normalized)
     print(f"File saved as {filename}")
 
+def equalizer_filter(time_raw, signal, band_weights):
+    """
+    Apply custom frequency weighting like an equalizer.
+    
+    Parameters:
+        time_raw (np.array): Time values (uniform spacing).
+        signal (np.array): Signal values.
+        band_weights (dict): Dict of { (f_low, f_high): weight }.
+    
+    Returns:
+        np.array: Filtered signal.
+    """
+    dt = time_raw[1] - time_raw[0]
+    n = len(signal)
+    freqs = fftfreq(n, d=dt)
+    fft_vals = fft(signal)
+
+    weights = np.zeros_like(freqs, dtype=float)
+
+    # Apply weights for each band
+    for (f_low, f_high), weight in band_weights.items():
+        mask = np.logical_and(np.abs(freqs) >= f_low, np.abs(freqs) < f_high)
+        weights[mask] = weight
+
+    filtered_fft = fft_vals * weights
+    filtered_signal = np.real(ifft(filtered_fft))
+    
+    return filtered_signal
+
 def loop_trough_data_view_and_hear():
-    # folder_path = choose_folder()
-    folder_path = 'C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session3\\Test6'
+    folder_path = choose_folder()
+    # folder_path = 'C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session3\\Test6'
     csv_files = glob.glob(os.path.join(folder_path, "*.csv"))
     pattern = r"(\d+Hz)(\d+Vpp).*_(\w+)\.csv"
     for file_path in csv_files:
@@ -225,7 +260,7 @@ def loop_trough_data_view_and_hear():
             title = file_path.split("\\")[-1]
         # if file_type == 'HighRes':
         if 1:
-        # if '10Vpp' in title:
+        # if 'Pinacolada_Speak_on_Good' in title:
             time_raw, mesure_raw = load_data_from_csv(file_path)
             # mesure_raw = convolve(mesure_raw, size=10)
             signal = extract_sound_from_detector_response(mesure_raw)
@@ -242,15 +277,29 @@ def loop_trough_data_view_and_hear():
             # plt.legend()
             # plt.show()
 
-            # plot_fourier_transform(time_raw, signal)
-            plot_data(signal)
-            print(f'Filtering...')
-            # signal = convolve(signal, size=30)
-            signal = filter_fourier_transform(time_raw, signal, 75, 10000)
-            print(f'Done!')
-            # save_as_wav(time_raw, signal)
-            plot_data(signal)
+            # plot_data(signal)
+            # print(f'Filtering...')
+            # # signal = convolve(signal, size=30)
+            # # signal = filter_fourier_transform(time_raw, signal, 75, 10000)
+            # print(f'Done!')
+            # plot_data(signal)
 
+            # plot_fourier_transform(time_raw, signal)
+            
+            print(f'Filtering...')
+            band_weights = {
+                (0, 200): 0,       # Rien
+                (100, 700): 0.1,   #
+                (700, 2500): 0.5,    #
+                (2500, 4000): 1, #
+                (4000, 8000): 0.1, #
+                (8000, 20000): 0   # Rien
+            }
+            signal = equalizer_filter(time_raw, signal, band_weights)
+            signal = signal*5
+            print(f'Done!')
+
+            save_as_wav(time_raw, signal)
 
             # REsample if too high
             max_samplerate = 192000
@@ -276,7 +325,7 @@ def loop_trough_data_view_and_hear():
             # time.sleep(1)
             # sd.stop()
 
-
+print('Go!')
 loop_trough_data_view_and_hear()
 # select_view_and_play_wav()
 # select_and_play_csv()
