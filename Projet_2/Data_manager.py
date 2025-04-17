@@ -15,6 +15,8 @@ import time
 import scipy.io.wavfile as wav
 from scipy.ndimage import maximum_filter1d, minimum_filter1d
 from scipy.fft import fft, ifft, fftfreq
+import numpy as np
+import librosa
 
 def choose_file(file_type=None):
     if file_type == 'wav':
@@ -244,6 +246,57 @@ def equalizer_filter(time_raw, signal, band_weights):
     
     return filtered_signal
 
+def denoise_audio_with_background(n_fft=2048, reduction_factor=1.0):
+    '''
+    n_fft et hop_length sont utile pour la Short-Time Fourier Transform (STFT)
+    Cette transformé décompose la signal en petits segments temporels qui se chevauchent (fenêtres) 
+    et calcule la transformée de Fourier sur chaque segment.
+    n_fft définit le nombre d'échantillons utilisés pour chaque fenêtre de la transformée de Fourier rapide (FFT).
+    hop_length controle le nombre de sample entre chaque fenetre car ils soverlap
+    ''' 
+
+    # audio_path="C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session6\\Michelphone_WAV\\Female2_Michelphone.wav"
+    audio_path = filedialog.askopenfilename(title="Select audio file",filetypes=[("Audio Files", "*.wav")])
+    
+    # background_path="C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session6\\Michelphone_WAV\\Background_Michelphone.wav"
+    # background_path = filedialog.askopenfilename(title="Select background file",filetypes=[("Audio Files", "*.wav")])
+    
+    output_path = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
+
+    hop_length = n_fft // 4
+    
+    audio, sr = librosa.load(audio_path, sr=None)
+
+    # background, _ = librosa.load(background_path, sr=sr)
+    tail_samples = int(3 * sr)
+    background = audio[-tail_samples:]
+
+    # Compute STFTs
+    audio_stft = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
+    bg_stft = librosa.stft(background, n_fft=n_fft, hop_length=hop_length)
+
+    # Get magnitude and phase
+    audio_mag, audio_phase = np.abs(audio_stft), np.angle(audio_stft)
+    bg_mag = np.abs(bg_stft)
+
+    # Estimate average background magnitude spectrum
+    bg_mean = np.mean(bg_mag, axis=1, keepdims=True)
+
+    # Subtract background from audio
+    cleaned_mag = audio_mag - reduction_factor * bg_mean
+    cleaned_mag = np.maximum(cleaned_mag, 0)  # avoid negative values
+
+    # Reconstruct complex spectrogram
+    cleaned_stft = cleaned_mag * np.exp(1j * audio_phase)
+
+    # Inverse STFT
+    cleaned_audio = librosa.istft(cleaned_stft, hop_length=hop_length)
+
+    # Save the result
+    sf.write(output_path, cleaned_audio, sr)
+
+    print(f"Denoised audio saved to: {output_path}")
+
 def loop_trough_data_view_and_hear():
     folder_path = choose_folder()
     # folder_path = 'C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session3\\Test6'
@@ -258,9 +311,8 @@ def loop_trough_data_view_and_hear():
             title = f"{frequency} {voltage} {file_type}"
         else:
             title = file_path.split("\\")[-1]
-        # if file_type == 'HighRes':
-        if 1:
-        # if 'Pinacolada_Speak_on_Good' in title:
+        # if 1:
+        if 'Background' in title:
             time_raw, mesure_raw = load_data_from_csv(file_path)
             # mesure_raw = convolve(mesure_raw, size=10)
             signal = extract_sound_from_detector_response(mesure_raw)
@@ -327,9 +379,10 @@ def loop_trough_data_view_and_hear():
             # sd.stop()
 
 print('Go!')
-loop_trough_data_view_and_hear()
+# loop_trough_data_view_and_hear()
 # select_view_and_play_wav()
 # select_and_play_csv()
+# denoise_audio_with_background(n_fft=65536, reduction_factor=2.5)
  
 
 
