@@ -287,16 +287,16 @@ def loop_trough_data_view_and_hear():
             # plot_fourier_transform(time_raw, signal)
             
             print(f'Filtering...')
-            band_weights = {
-                (0, 200): 0,       # Rien
-                (100, 700): 0.1,   #
-                (700, 2500): 0.5,    #
-                (2500, 4000): 1, #
-                (4000, 8000): 0.1, #
-                (8000, 20000): 0   # Rien
-            }
-            signal = equalizer_filter(time_raw, signal, band_weights)
-            signal = signal*5
+            # band_weights = {
+            #     (0, 200): 0,       # Rien
+            #     (100, 700): 0.1,   #
+            #     (700, 2500): 0.5,    #
+            #     (2500, 4000): 1, #
+            #     (4000, 8000): 0.1, #
+            #     (8000, 20000): 0   # Rien
+            # }
+            # signal = equalizer_filter(time_raw, signal, band_weights)
+            # signal = signal*5
             print(f'Done!')
 
             save_as_wav(time_raw, signal)
@@ -309,6 +309,7 @@ def loop_trough_data_view_and_hear():
                 num_samples = int(len(signal) * max_samplerate / samplerate)
                 signal = sgnl.resample(signal, num_samples)
                 samplerate = max_samplerate
+                
 
             # boost_factor = 5
             # signal = np.clip(signal, -1.0, 1.0)
