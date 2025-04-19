@@ -130,8 +130,8 @@ def process_all(folder1, folder2, folder3=None):
 # Run the process
 # folder1 = filedialog.askdirectory(title="Select Folder with Audio 1")
 # folder2 = filedialog.askdirectory(title="Select Folder with Audio 2")
-# folder3 = filedialog.askdirectory(title="Select Folder with Audio 3")
+folder3 = filedialog.askdirectory(title="Select Folder with Audio 3")
 folder1 = "C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session6\\Original_Audio"
 folder2 = "C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session6\\Recordings"
-folder3 = "C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session6\\Michelphone_MP3"
+# folder3 = "C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session6\\Michelphone_MP3"
 process_all(folder1, folder2, folder3)

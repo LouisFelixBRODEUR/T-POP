@@ -382,7 +382,7 @@ print('Go!')
 # loop_trough_data_view_and_hear()
 # select_view_and_play_wav()
 # select_and_play_csv()
-# denoise_audio_with_background(n_fft=65536, reduction_factor=2.5)
+denoise_audio_with_background(n_fft=65536, reduction_factor=1.5)
  
 
 
