@@ -41,7 +41,7 @@ def compute_spectrogram_from_signals(y, sr):
     return S, freqs, times
 
 def plot_spectrograms_three_way(spec1, spec2, spec3, freqs, times, file_name):
-    fig = plt.figure(figsize=(10, 12))
+    fig = plt.figure(figsize=(16, 10))
     
     # Tight grid layout with minimal margins
     gs = fig.add_gridspec(3, 2, width_ratios=[1, 0.02], height_ratios=[1, 1, 1],
@@ -64,12 +64,56 @@ def plot_spectrograms_three_way(spec1, spec2, spec3, freqs, times, file_name):
     
     # Plot parameters
     vmin, vmax = -80, 0
+    # cmap = 'gray_r'
+    cmap = 'inferno_r'
+    # cmap = 'inferno'
     
     # Plotting function to reduce repetition
-    def plot_spectrogram(ax, data, title):
+    def plot_spectrogram_old(ax, data, title):
         im = ax.imshow(librosa.amplitude_to_db(data, ref=np.max), aspect='auto', origin='lower',
                       extent=[times[0], times[-1], freqs[0], freqs[-1]], vmin=vmin, vmax=vmax)
         # ax.set_title(title, fontsize=title_fontsize, pad=8)
+        ax.set_yscale('log')
+        ax.set_ylim(100, 20000)
+        ax.set_yticks(custom_ticks)
+        ax.set_yticklabels(custom_tick_labels, fontsize=tick_fontsize)
+        ax.tick_params(axis='x', labelsize=tick_fontsize)
+        ax.minorticks_off()
+        return im
+    
+    def plot_spectrogram_old_2(ax, data, title):
+        # Apply contrast stretching - adjust these values based on your data distribution
+        pmin, pmax = np.percentile(librosa.amplitude_to_db(data, ref=np.max), (2, 98))
+        im = ax.imshow(librosa.amplitude_to_db(data, ref=np.max), aspect='auto', origin='lower',
+                      extent=[times[0], times[-1], freqs[0], freqs[-1]], 
+                      vmin=max(vmin, pmin), vmax=min(vmax, pmax),  # Dynamic range adjustment
+                      cmap=cmap)
+        # im = ax.imshow(librosa.amplitude_to_db(data, ref=np.max), aspect='auto', origin='lower',
+        #         extent=[times[0], times[-1], freqs[0], freqs[-1]], vmin=vmin, vmax=vmax, cmap=cmap)
+        
+        # Grid lines for better readability
+        ax.grid(which='major', axis='both', linestyle=':', linewidth=0.5, color='black', alpha=0.3)
+        
+        ax.set_yscale('log')
+        ax.set_ylim(100, 20000)
+        ax.set_yticks(custom_ticks)
+        ax.set_yticklabels(custom_tick_labels, fontsize=tick_fontsize)
+        ax.tick_params(axis='x', labelsize=tick_fontsize)
+        ax.minorticks_off()
+        return im
+    
+    def plot_spectrogram(ax, data, title):
+        # Convert to dB and clip to ensure the range is respected
+        db_data = librosa.amplitude_to_db(data, ref=np.max)
+        db_data = np.clip(db_data, vmin, vmax)
+        
+        im = ax.imshow(db_data, aspect='auto', origin='lower',
+                      extent=[times[0], times[-1], freqs[0], freqs[-1]],
+                      vmin=vmin, vmax=vmax, cmap=cmap)
+        
+        # Add grid lines for better readability
+        ax.grid(which='major', axis='both', linestyle=':', linewidth=0.5, color='black', alpha=0.3)
+        
         ax.set_yscale('log')
         ax.set_ylim(100, 20000)
         ax.set_yticks(custom_ticks)
@@ -99,6 +143,8 @@ def plot_spectrograms_three_way(spec1, spec2, spec3, freqs, times, file_name):
     fig.text(0.5, 0.01, 'Temps (s)', ha='center', 
             fontsize=axis_label_fontsize)
     
+    print(file_name)
+    plt.savefig(file_name.replace('.mp3', '.png'), dpi=300, bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 def process_all(folder1, folder2, folder3=None):
@@ -123,7 +169,7 @@ def process_all(folder1, folder2, folder3=None):
             spec3, _, _ = compute_spectrogram_from_signals(y3, sr) if y3 is not None else (None, None, None)
 
             # Plot spectrograms
-            plot_spectrograms_three_way(spec1, spec2, spec3, freqs, times, file)
+            plot_spectrograms_three_way(spec1, spec2, spec3, freqs, times, f'C:\\Users\\louis\\Documents\\ULaval_S4\\TPOP\\GitWorkSpace\\Projet_2\\Session6\\Spectrograms\\{file}')
     else:
         print("No matching MP3 files found.")
 
