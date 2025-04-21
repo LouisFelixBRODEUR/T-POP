@@ -260,16 +260,19 @@ class MichelsonInterferometer(Scene):
         
         return full_pattern
     
-    def get_detector_signal(self, axes, time, mirror_pos, wavelength=0.5, Mirror_amplitude = 0.2):
+    def get_detector_signal(self, axes, time, mirror_pos, wavelength=0.5, Mirror_amplitude=0.1, mirror_freq=1):
         """Returns the graph line showing the detector signal over time"""
         # Create time points up to current time
         max_time = min(time, axes.x_range[1])
-        t_values = np.linspace(0, max_time, int(max_time * 20 + 1))  # More points for smoother curve
+        t_values = np.linspace(0, max_time, int(max_time * 100 + 1))  # High resolution
         
-        # Calculate corresponding y values based on mirror position
-        # Use the actual time-dependent mirror position for each point
-        y_values = 2 * (1 + np.cos(4 * PI * (Mirror_amplitude * np.sin(3 * t_values)) / wavelength))
+        # Calculate mirror motion (slower and smaller amplitude)
+        mirror_displacement = Mirror_amplitude * np.sin(1* mirror_freq * t_values)
         
+        # Calculate interference intensity:
+        # I = 2I₀(1 + cos(4πd/λ)) where d is mirror displacement
+        y_values = 10 * (1 + np.cos(2 * PI * mirror_displacement / wavelength))-17
+
         # Create the line graph
         graph = VMobject()
         graph.set_points_smoothly([
@@ -280,3 +283,4 @@ class MichelsonInterferometer(Scene):
         graph.set_stroke(width=3)
         
         return graph
+ 
